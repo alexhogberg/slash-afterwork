@@ -30,12 +30,18 @@ class Afterwork():
             return action(operation, event)
 
         else:
-            return self.slack_text(
+            return self.private_slack_text(
                 "Incorrect command specified, Possible commands are: list, create <day> <time> <place>, join <day>, leave <day>")
 
-    def slack_text(self, text):
+    def private_slack_text(self, text):
         return {
             "text" : text
+        }
+
+    def public_slack_text(self, text, channel):
+        return {
+            "response_type": "in_channel",
+            "text": "<@" + channel + "|channel>: " + text
         }
 
     def is_day_valid(self, day_string):
@@ -86,15 +92,16 @@ class Afterwork():
                     for participant in item['Participants']:
                         events += participant
                 events += "\n"
-            return self.slack_text(events)
+            return self.private_slack_text(events)
         else:
-            return self.slack_text("No upcoming after work.. Perhaps you want to create one?")
+            return self.private_slack_text("No upcoming after work.. Perhaps you want to create one?")
 
     def create_afterwork(self, command, event):
 
         day = command[1]
         time = default(lambda: command[2], IndexError, '17')
-        place = default(lambda: command[3], IndexError, 'Unspecified')
+        place = default(lambda: " ".join(command[3:]), IndexError, 'Unspecified')
+        channel = event['channel_id']
 
         author = self.__get_user_name(event)
 
@@ -116,11 +123,11 @@ class Afterwork():
                     }
                 )
             except exceptions.ClientError as e:
-                return self.slack_text("Couldn't create after work. It seems as if there is already an after work planned that day.")
+                return self.private_slack_text("Couldn't create after work. It seems as if there is already an after work planned that day.")
 
-            return self.slack_text("Great! You created an after work on %s at %s" % (date, place))
+            return self.public_slack_text("Hi! %s created an after work on %s at %s by %s! To join type /afterwork join %s" % (author, date, time, place, day), channel)
         else:
-            return self.slack_text("You cannot create an afterwork on that day! Valid days are monday to friday")
+            return self.private_slack_text("You cannot create an afterwork on that day! Valid days are monday to friday")
 
     def join_afterwork(self, command, event):
         day = command[1]
@@ -143,11 +150,11 @@ class Afterwork():
                     ReturnValues="UPDATED_NEW"
                 )
 
-                return self.slack_text("Great! You've joined the after work on " + day + "!")
+                return self.private_slack_text("Great! You've joined the after work on " + day + "!")
             except Exception as e:
-                return self.slack_text("I'm sorry, I couldn't join you to that after work. Perhaps you are already participating?")
+                return self.private_slack_text("I'm sorry, I couldn't join you to that after work. Perhaps you are already participating?")
         else:
-            return self.slack_text("Sorry, I couldn't find an after work that day.")
+            return self.private_slack_text("Sorry, I couldn't find an after work that day.")
 
 
 
@@ -181,16 +188,17 @@ class Afterwork():
                         },
                         ReturnValues="UPDATED_NEW"
                     )
-                    return self.slack_text("You are now removed from the after work!")
+                    return self.private_slack_text("You are now removed from the after work!")
                 except Exception:
-                    return self.slack_text("Oops. Something went wrong when removing you from the after work!")
+                    return self.private_slack_text("Oops. Something went wrong when removing you from the after work!")
             else:
-                return self.slack_text("Are you really joined to that after work?")
+                return self.private_slack_text("Are you really joined to that after work?")
         return "Couldn't find any after work on that day."
 
     def delete_afterwork(self, command, event):
         day = command[1]
         author = self.__get_user_name(event)
+        channel = event['channel_id']
 
         day_num = self.is_day_valid(day)
         if day_num is not None:
@@ -205,11 +213,11 @@ class Afterwork():
                         ':i' : author
                     }
                 )
-                return self.slack_text("The after work on %s is now deleted!" % day)
+                return self.public_slack_text("The after work on %s has now been cancelled, sorry!" % day, channel)
             except Exception as e:
-                return self.slack_text(e)
+                return self.private_slack_text(e)
         else:
-            return self.slack_text("That after work doesn't seem to exist")
+            return self.private_slack_text("That after work doesn't seem to exist")
 
     def __get_user_name(self, event):
         return "<@" + event['user_id'] + "|" + event['user_name'] + ">"
