@@ -43,7 +43,7 @@ class Afterwork():
         if day_string in self.valid_days:
             if day_string in ['mo', 'monday']:
                 day_num = 0
-            elif day_string in ['tu', 'tuesday']:
+            elif day_string in ['tue', 'tuesday']:
                 day_num = 1
             elif day_string in ['wed', 'wednesday']:
                 day_num = 2
@@ -205,7 +205,7 @@ class Afterwork():
                         ':i' : author
                     }
                 )
-                return self.slack_text("The after work is now deleted!")
+                return self.slack_text("The after work on %s is now deleted!" % day)
             except Exception as e:
                 return self.slack_text(e)
         else:
