@@ -13,7 +13,7 @@ class Afterwork:
         self.valid_commands = ['list', 'create', 'join', 'leave', 'delete']
 
         self.valid_days = [
-            'mo', 'tue', 'wed', 'thur', 'fri',
+            'mon', 'tue', 'wed', 'thu', 'fri',
             'monday', 'tuesday', 'wednesday', 'thursday', 'friday'
         ]
 
@@ -44,13 +44,13 @@ class Afterwork:
     def __is_day_valid(self, day_string):
         print(day_string)
         if day_string in self.valid_days:
-            if day_string in ['mo', 'monday']:
+            if day_string in ['mon', 'monday']:
                 day_num = 0
             elif day_string in ['tue', 'tuesday']:
                 day_num = 1
             elif day_string in ['wed', 'wednesday']:
                 day_num = 2
-            elif day_string in ['thur', 'thursday']:
+            elif day_string in ['thu', 'thursday']:
                 day_num = 3
             elif day_string in ['fri', 'friday']:
                 day_num = 4

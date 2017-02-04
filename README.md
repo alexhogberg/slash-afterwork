@@ -1,8 +1,8 @@
 # slash-afterwork
-This slash command is a utility for creating after work events with your team. It is built with serverless and comes with and automatic setup.
+This slash command is a utility for creating after work events with your team. It is built with serverless and comes with an automatic setup.
 
 ##Description
-The command is built with serverless using AWS services to run.
+The command is built with serverless using AWS services to run which enables super simple setup.
 
 ###Services
 The services used are:
@@ -15,7 +15,7 @@ To install slash-afterwork you simply clone this repository and make sure that y
 
 If not, run `npm -g install serverless`.
 
-You also need to change the `apiKey` in `conf.yml` so that the lambda can integrate with the slack API.
+You also need to change the `apiKey` in `conf.yml` so that the lambda can integrate with the slack API. You get this key when you setup your slash command in the Slack API.
 
 When this is complete you can setup your stack using `serverless deploy`.
 
@@ -25,6 +25,8 @@ Make a note of the `endpoints` that is returned from the deployment command. Thi
 Once everything is deployed you are ready to run commands to slash-afterwork. Not suprisingly, the slash command is:
 
 `/afterwork`
+
+The bot gives both private messages and public messages. The only two possibilities of sending a public message is either when you create an after work or deletes one.
 
 Only running `/afterwork` will give you the available options.
 
@@ -38,6 +40,9 @@ join <day>
 leave <day>
 delete <day>
 ```
+
+Days are monday-friday or mon-fri.
+
 To see the upcoming after work events run: `/afterwork list`
 ```
 /afterwork list
