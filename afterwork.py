@@ -61,7 +61,7 @@ class Afterwork():
         if 'Items' in results and len(results['Items']) > 0:
             events = "Upcoming after work: \n"
             for item in results['Items']:
-                events+= item['Date']
+                events += "*" + item['Date'] + "*"
 
                 if 'Time' in item:
                     events += " at *" + item['Time'] + "*"
@@ -69,10 +69,12 @@ class Afterwork():
                 if 'Location' in item:
                     events += " by *" + item['Location'] + "*"
 
+                events += " started by *" + item['Author'] + "*"
+
                 if 'Participants' in item:
                     events += "\n *Participants:* \n"
                     for participant in item['Participants']:
-                        events += participant['user_name']
+                        events += participant
                 events += "\n"
             return self.slack_text(events)
         else:
@@ -83,7 +85,7 @@ class Afterwork():
         day = command[1]
         time = command[2]
         place = command[3]
-        author = event['user_name']
+        author = "<@" + event['user_id'] + "|" + event['user_name'] + ">"
 
         day_num = self.is_day_valid(day)
         if day_num is not None:
@@ -95,9 +97,7 @@ class Afterwork():
                     'Location': place,
                     'Time': time,
                     'Author': author,
-                    'Participants' : {
-                        [author]
-                    }
+                    'Participants' : [author]
                 }
             )
 
