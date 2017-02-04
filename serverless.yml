@@ -12,6 +12,9 @@ functions:
   afterwork:
     environment:
       apiKey: ${file(./conf.yml):apiKey}
+      authKey: ${file(./conf.yml):authKey}
+      botName: ${file(./conf.yml):botName}
+      channelName: ${file(./conf.yml):channelName}
     handler: handler.index
     events:
       - http:
@@ -21,6 +24,12 @@ functions:
           request:
             template:
               application/json: ${file(./s-templates.s)}
+      - schedule:
+          rate: cron(0 12 ? * MON-FRI *)
+          enabled: true
+          input:
+            triggerToken: ${file(./conf.yml):authKey}
+
 
 resources:
   Resources:

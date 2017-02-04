@@ -1,14 +1,23 @@
 import boto3
+import calendar
+import logging
+import os
+
 from boto3.dynamodb.conditions import Attr
 from datetime import datetime, timedelta
-import calendar
 from botocore import exceptions
+from slacker import Slacker
 
 
 class Afterwork:
     def __init__(self):
+        self.logger = logging.getLogger()
+        self.logger.setLevel(logging.INFO)
+
         self.dynamodb = boto3.resource('dynamodb')
         self.awtable = self.dynamodb.Table('afterworks')
+
+        self.slack = Slacker(os.environ['authKey'])
 
         self.valid_commands = ['list', 'create', 'join', 'leave', 'delete']
 
@@ -40,6 +49,18 @@ class Afterwork:
     @staticmethod
     def __get_user_name(event):
         return "<@" + event['user_id'] + "|" + event['user_name'] + ">"
+
+    def __get_channel_id(self):
+        channel_list = self.slack.channels.list()
+
+        channel_id = 0
+
+        for channel in channel_list.body['channels']:
+            if channel['name'] == os.environ['channelName']:
+                channel_id = channel['id']
+                break
+
+        return channel_id
 
     def __is_day_valid(self, day_string):
         print(day_string)
@@ -100,6 +121,8 @@ class Afterwork:
                         events += participant + "\n"
                 else:
                     events += "\nNo one is participating in this after work, *yet...*"
+
+                events += "\n To join type */afterwork join %s*" % calendar.day_name[weekday].lower()
                 events += "\n"
             return self.__private_slack_text(events)
         else:
@@ -118,7 +141,7 @@ class Afterwork:
         else:
             place = 'Unspecified location'
 
-        channel = event['channel_id']
+        channel_id = self.__get_channel_id()
 
         author = self.__get_user_name(event)
 
@@ -132,6 +155,7 @@ class Afterwork:
                         'Location': place,
                         'Time': time,
                         'Author': author,
+                        'Channel': channel_id,
                         'Participants': [author]
                     },
                     ConditionExpression="attribute_not_exists(#d)",
@@ -139,12 +163,20 @@ class Afterwork:
                         '#d': 'Date'
                     }
                 )
-            except exceptions.ClientError:
+            except exceptions.ClientError as e:
+                self.logger.error(e)
                 return self.__private_slack_text(
                     "Couldn't create after work. It seems as if there is already an after work planned that day.")
 
-            return self.__public_slack_text(
-                """Hi! %s created an after work on %s at %s by %s! \n To join type /afterwork join %s""" % (author, date, time, place, day), channel)
+            self.logger.info('Created a new after work')
+            self.slack.chat.post_message(
+                text="""Hi! %s created an after work! \n *%s* at *%s* \n *%s* \n To join type */afterwork join %s*"""
+                     % (author, calendar.day_name[day_num], time, place, day),
+                channel=channel_id,
+                username=os.environ['botName']
+            )
+            return self.__private_slack_text(
+                "*Sweet*! After work event created!")
         else:
             return self.__private_slack_text(
                 "You cannot create an afterwork on that day! Valid days are monday to friday")
@@ -171,7 +203,8 @@ class Afterwork:
                 )
 
                 return self.__private_slack_text("Great! You've joined the after work on " + day + "!")
-            except exceptions.ClientError:
+            except exceptions.ClientError as e:
+                self.logger.error(e)
                 return self.__private_slack_text(
                     "I'm sorry, I couldn't join you to that after work. Perhaps you are already participating?")
         else:
@@ -208,8 +241,10 @@ class Afterwork:
                         ReturnValues="UPDATED_NEW"
                     )
                     return self.__private_slack_text("You are now removed from the after work!")
-                except exceptions.ClientError:
-                    return self.__private_slack_text("Oops. Something went wrong when removing you from the after work!")
+                except exceptions.ClientError as e:
+                    self.logger.error(e)
+                    return self.__private_slack_text(
+                        "*Oops*. Something went wrong when removing you from the after work!")
             else:
                 return self.__private_slack_text("Are you really joined to that after work?")
         return "Couldn't find any after work on that day."
@@ -217,7 +252,6 @@ class Afterwork:
     def delete_afterwork(self, command, event):
         day = command[1]
         author = self.__get_user_name(event)
-        channel = event['channel_id']
 
         day_num = self.__is_day_valid(day)
         if day_num is not None:
@@ -232,8 +266,52 @@ class Afterwork:
                         ':i': author
                     }
                 )
-                return self.__public_slack_text("The after work on %s has now been cancelled, sorry!" % day, channel)
+                self.slack.chat.post_message(
+                    text="The after work on %s has been cancelled, sorry!" % day,
+                    channel=self.__get_channel_id(),
+                    username=os.environ['botName']
+                )
+                return self.__private_slack_text("*Gotcha*! After work event deleted.")
             except Exception as e:
-                return self.__private_slack_text(e)
+                self.logger.error(e)
+                return self.__private_slack_text("Unable to remove you from the after work event.")
         else:
-            return self.__private_slack_text("That after work doesn't seem to exist")
+            return self.__private_slack_text("That after work doesn't seem to exist.")
+
+    def todays_afterwork(self):
+
+        response = self.awtable.get_item(
+            Key={
+                'Date': datetime.today().strftime("%Y-%m-%d")
+            }
+        )
+
+        if 'Item' in response and len(response['Item']) > 0:
+            channel = response['Item']['Channel']
+
+            if 'Participants' in response['Item'] and len(response['Item']['Participants']) > 0:
+                event = "*Reminder * Today there's an after work planned! \n"
+
+                weekday = datetime.strptime(response['Item']['Date'], "%Y-%m-%d").weekday()
+
+                event += "*" + calendar.day_name[weekday] + "*"
+
+                if 'Time' in response['Item']:
+                    event += " at *" + response['Item']['Time'] + "*"
+
+                if 'Location' in response['Item']:
+                    event += " by *" + response['Item']['Location'] + "*"
+
+                event += " started by *" + response['Item']['Author'] + "*"
+                event += "\n *Participants:* \n"
+                for participant in response['Item']['Participants']:
+                    event += participant + "\n"
+
+                event += "\n *Don't be late!*"
+            else:
+                event = "Hey guys, there was an after work planned for today, but no one wants to go :("
+
+            try:
+                self.slack.chat.post_message(channel, event)
+            except Exception as e:
+                self.logger.error(e)
