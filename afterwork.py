@@ -41,7 +41,7 @@ class Afterwork():
     def public_slack_text(self, text, channel):
         return {
             "response_type": "in_channel",
-            "text": "<@" + channel + "|channel>: " + text
+            "text": "<#" + channel + ">: " + text
         }
 
     def is_day_valid(self, day_string):
@@ -99,8 +99,16 @@ class Afterwork():
     def create_afterwork(self, command, event):
 
         day = command[1]
-        time = default(lambda: command[2], IndexError, '17')
-        place = default(lambda: " ".join(command[3:]), IndexError, 'Unspecified')
+        try:
+            time = command[2]
+        except IndexError:
+            time = "17:30"
+
+        if len(command) > 3:
+            place = command[3:]
+        else:
+            place = 'Unspecified location'
+
         channel = event['channel_id']
 
         author = self.__get_user_name(event)
@@ -123,7 +131,8 @@ class Afterwork():
                     }
                 )
             except exceptions.ClientError as e:
-                return self.private_slack_text("Couldn't create after work. It seems as if there is already an after work planned that day.")
+                return self.private_slack_text(e)
+                #return self.private_slack_text("Couldn't create after work. It seems as if there is already an after work planned that day.")
 
             return self.public_slack_text("Hi! %s created an after work on %s at %s by %s! To join type /afterwork join %s" % (author, date, time, place, day), channel)
         else:
