@@ -2,6 +2,13 @@ import boto3
 from boto3.dynamodb.conditions import Attr, Key
 from datetime import datetime, timedelta
 import calendar
+from botocore import exceptions
+
+def default(x, e, y):
+    try:
+        return x()
+    except e:
+        return y
 
 class Afterwork():
     def __init__(self):
@@ -86,25 +93,32 @@ class Afterwork():
     def create_afterwork(self, command, event):
 
         day = command[1]
-        time = command[2] or 16
-        place = command[3] or 'Unknown'
+        time = default(lambda: command[2], IndexError, '17')
+        place = default(lambda: command[3], IndexError, 'Unspecified')
+
         author = self.__get_user_name(event)
 
         day_num = self.is_day_valid(day)
         if day_num is not None:
             date = self.get_next_weekday(datetime.now().strftime("%Y-%m-%d"), day_num)
+            try:
+                self.awtable.put_item(
+                    Item={
+                        'Date': date,
+                        'Location': place,
+                        'Time': time,
+                        'Author': author,
+                        'Participants' : [author]
+                    },
+                    ConditionExpression="attribute_not_exists(#d)",
+                    ExpressionAttributeNames={
+                        '#d': 'Date'
+                    }
+                )
+            except exceptions.ClientError as e:
+                return self.slack_text("Couldn't create after work. It seems as if there is already an after work planned that day.")
 
-            self.awtable.put_item(
-                Item={
-                    'Date': date,
-                    'Location': place,
-                    'Time': time,
-                    'Author': author,
-                    'Participants' : [author]
-                }
-            )
-
-            return self.slack_text("You created an after work on %s at %s" % (date, place))
+            return self.slack_text("Great! You created an after work on %s at %s" % (date, place))
         else:
             return self.slack_text("You cannot create an afterwork on that day! Valid days are monday to friday")
 
