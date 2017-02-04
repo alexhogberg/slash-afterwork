@@ -22,7 +22,7 @@ class Afterwork():
 
     def parse_command(self, command, event):
         if command == "":
-            return "No command given, Possible commands are: list, create <day> <time> <place>, join <day>, leave <day>, delete <day>"
+            return self.private_slack_text("No command given, Possible commands are: list, create <day> <time> <place>, join <day>, leave <day>, delete <day>")
         elif command.split(" ")[0] in self.valid_commands:
             operation = command.split(" ")
 
@@ -31,7 +31,7 @@ class Afterwork():
 
         else:
             return self.private_slack_text(
-                "Incorrect command specified, Possible commands are: list, create <day> <time> <place>, join <day>, leave <day>")
+                "Incorrect command specified. Possible commands are: list, create <day> <time> <place>, join <day>, leave <day>")
 
     def private_slack_text(self, text):
         return {
