@@ -31,7 +31,12 @@ Only running `/afterwork` will give you the available options.
 ```
 /afterwork
 
-No command given, Possible commands are: list, create <day> <time> <place>, join <day>, leave <day>, delete <day>
+No command given, Possible commands are:
+list
+create <day> <time> <place>
+join <day>
+leave <day>
+delete <day>
 ```
 To see the upcoming after work events run: `/afterwork list`
 ```
@@ -71,3 +76,4 @@ You can only do this if you are the author of the after work event.
 Since this was built quite fast I have yet to implement a couple of other features:
 * Notify channel when it is time for after work
 * Smarter handling of date parameter, e.g. `/afterwork create friday in two weeks 16:00 TBD`
+* Install slacker for better integration with the Slack API

@@ -54,8 +54,6 @@ class Afterwork:
                 day_num = 3
             elif day_string in ['fri', 'friday']:
                 day_num = 4
-            else:
-                day_num = None
             return day_num
         else:
             return None
@@ -99,7 +97,9 @@ class Afterwork:
                 if 'Participants' in item and len(item['Participants']) > 0:
                     events += "\n *Participants:* \n"
                     for participant in item['Participants']:
-                        events += participant
+                        events += participant + "\n"
+                else:
+                    events += "\nNo one is participating in this after work, *yet...*"
                 events += "\n"
             return self.__private_slack_text(events)
         else:
