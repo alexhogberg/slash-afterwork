@@ -131,8 +131,7 @@ class Afterwork():
                     }
                 )
             except exceptions.ClientError as e:
-                return self.private_slack_text(e)
-                #return self.private_slack_text("Couldn't create after work. It seems as if there is already an after work planned that day.")
+                return self.private_slack_text("Couldn't create after work. It seems as if there is already an after work planned that day.")
 
             return self.public_slack_text("Hi! %s created an after work on %s at %s by %s! To join type /afterwork join %s" % (author, date, time, place, day), channel)
         else:
