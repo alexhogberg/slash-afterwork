@@ -1,0 +1,68 @@
+# Welcome to Serverless!
+#
+# This file is the main config file for your service.
+# It's very minimal at this point and uses default values.
+# You can always add more config options for more control.
+# We've included some commented out config examples here.
+# Just uncomment any of them to get that config option.
+#
+# For full config options, check the docs:
+#    docs.serverless.com
+#
+# Happy Coding!
+
+service: mm-afterwork # NOTE: update this with your service name
+package:
+  include:
+    - afterwork.py
+
+provider:
+  name: aws
+  runtime: python2.7
+  region: eu-west-1
+
+functions:
+  afterwork:
+    environment:
+      apiKey: ${file(./conf.yml):apiKey}
+    handler: handler.index
+    events:
+      - http:
+          path: afterwork
+          method: post
+          integration: lambda
+          request:
+            template:
+              application/json: ${file(./s-templates.s)}
+
+resources:
+  Resources:
+    DynamoDbTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: "afterworks"
+        AttributeDefinitions:
+          -
+            AttributeName: "Date"
+            AttributeType: "S"
+        KeySchema:
+          -
+            AttributeName: "Date"
+            KeyType: "HASH"
+        ProvisionedThroughput:
+          ReadCapacityUnits: "2"
+          WriteCapacityUnits: "2"
+    DynamoDBIamPolicy:
+      Type: AWS::IAM::Policy
+      DependsOn: DynamoDbTable
+      Properties:
+        PolicyName: lambda-dynamodb
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:*
+              Resource: arn:aws:dynamodb:*:*:table/afterworks
+        Roles:
+          - Ref: IamRoleLambdaExecution
