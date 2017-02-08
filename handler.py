@@ -7,7 +7,7 @@ afterwork_handler = Afterwork()
 def index(event, context):
     if 'token' in event['body'] and event['body']['token'] == os.environ['apiKey']:
         return afterwork_handler.parse_command(event['body']['text'], event['body'])
-    elif 'reminder_trigger' in event and event['triggerToken'] == os.environ['authKey']:
+    elif 'triggerToken' in event and event['triggerToken'] == os.environ['authKey']:
         return afterwork_handler.todays_afterwork()
     else:
         return "HEY YOU'RE NOT THE ONE, OK?!"
