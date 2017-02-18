@@ -287,7 +287,6 @@ class Afterwork:
         )
 
         if 'Item' in response and len(response['Item']) > 0:
-            channel = os.environ['channelName']
 
             if 'Participants' in response['Item'] and len(response['Item']['Participants']) > 0:
                 event = "*Reminder * Today there's an after work planned! \n"
@@ -312,6 +311,10 @@ class Afterwork:
                 event = "Hey guys, there was an after work planned for today, but no one wants to go :("
 
             try:
-                self.slack.chat.post_message(channel, event)
+                self.slack.chat.post_message(
+                    channel=self.__get_channel_id(),
+                    text=event,
+                    username=os.environ['botName']
+                )
             except Exception as e:
                 self.logger.error(e)
