@@ -2,6 +2,7 @@ import boto3
 import calendar
 import logging
 import os
+import time
 
 from boto3.dynamodb.conditions import Attr
 from datetime import datetime, timedelta
@@ -15,36 +16,17 @@ class Afterwork:
         self.logger.setLevel(logging.INFO)
 
         self.dynamodb = boto3.resource('dynamodb')
-        self.awtable = self.dynamodb.Table('afterworks')
+        self.afterwork_table = self.dynamodb.Table(os.environ['tableName'])
 
-        self.slack = Slacker(os.environ['authKey'])
+        self.slack = Slacker(os.environ['apiKey'])
 
         self.valid_commands = ['list', 'create', 'join', 'leave', 'delete']
-
-        self.valid_days = [
-            'mon', 'tue', 'wed', 'thu', 'fri',
-            'monday', 'tuesday', 'wednesday', 'thursday', 'friday'
-        ]
 
     @staticmethod
     def __private_slack_text(text):
         return {
             "text": text
         }
-
-    @staticmethod
-    def __public_slack_text(text, channel):
-        return {
-            "response_type": "in_channel",
-            "text": "<#" + channel + ">: " + text
-        }
-
-    @staticmethod
-    def __get_next_weekday(startdate, weekday):
-        start = datetime.strptime(startdate, '%Y-%m-%d')
-        day = timedelta((7 + weekday - start.weekday()) % 7)
-
-        return (start + day).strftime("%Y-%m-%d")
 
     @staticmethod
     def __get_user_name(event):
@@ -62,27 +44,73 @@ class Afterwork:
 
         return channel_id
 
-    def __is_day_valid(self, day_string):
-        print(day_string)
-        if day_string in self.valid_days:
-            if day_string in ['mon', 'monday']:
-                day_num = 0
-            elif day_string in ['tue', 'tuesday']:
-                day_num = 1
-            elif day_string in ['wed', 'wednesday']:
-                day_num = 2
-            elif day_string in ['thu', 'thursday']:
-                day_num = 3
-            elif day_string in ['fri', 'friday']:
-                day_num = 4
-            return day_num
+    @staticmethod
+    def __is_day_formatted_as_date(day):
+        try:
+            datetime.strptime(day, '%Y-%m-%d')
+            return True
+        except ValueError:
+            return False
+
+    @staticmethod
+    def __get_next_weekday_as_date(weekday_number):
+        start = datetime.strptime(datetime.now().strftime("%Y-%m-%d"), '%Y-%m-%d')
+        day = timedelta((7 + weekday_number - start.weekday()) % 7)
+
+        return (start + day).strftime("%Y-%m-%d")
+
+    @staticmethod
+    def __parse_date_to_weekday(date):
+        return calendar.day_name[datetime.strptime(date, "%Y-%m-%d").weekday()]
+
+    def __get_day_number(self, weekday_name):
+        weekday = weekday_name.lower().capitalize()
+
+        try:
+            # User should be able to write tuesday or tue, both should work
+            if len(weekday) is 3:
+                day_num = time.strptime(weekday, '%a').tm_wday
+            else:
+                day_num = time.strptime(weekday, '%A').tm_wday
+
+            if 0 <= day_num < 5:
+                return day_num
+        except ValueError:
+            self.logger.info("Invalid weekday specified: {weekday}".format(
+                weekday=weekday
+            ))
+            return -1
+
+        return -1
+
+    def __get_date(self, date):
+        if self.__is_day_formatted_as_date(date):
+            # Make sure date is in the future
+            if datetime.today() >= datetime.strptime(date, "%Y-%m-%d"):
+                return -1
+
+            weekday_name = self.__parse_date_to_weekday(date)
+            day_number = self.__get_day_number(weekday_name)
+            if day_number is not -1:
+                return date
         else:
-            return None
+            day_number = self.__get_day_number(date)
+            if day_number is not -1:
+                return self.__get_next_weekday_as_date(day_number)
+
+        return -1
 
     def parse_command(self, command, event):
+        """
+        Parses the input command given from the slack slash command
+        :param command: the command to be parsed
+        :param event: the full lambda event
+        :return: the action done or error if incorrect command was specified
+        """
         if command == "":
             return self.__private_slack_text(
-                """No command given, Possible commands are: \nlist \ncreate <day> <time> <place>\njoin <day>\nleave <day>\ndelete <day>""")
+                """No command given, Possible commands are:
+                \nlist \ncreate <day> <time> <place>\njoin <day>\nleave <day>\ndelete <day>""")
         elif command.split(" ")[0] in self.valid_commands:
             operation = command.split(" ")
 
@@ -91,12 +119,20 @@ class Afterwork:
 
         else:
             return self.__private_slack_text(
-                """Incorrect command specified. Possible commands are: \nlist \ncreate <day> <time> <place>\njoin <day>\nleave <day>\ndelete <day>""")
-
-
+                """Incorrect command specified. Possible commands are:
+                \nlist \ncreate <day> <time> <place>\njoin <day>\nleave <day>\ndelete <day>""")
 
     def list_afterwork(self, command, event):
-        results = self.awtable.scan(
+        """
+        Gets a list of after work events
+        :param command: Not used
+        :param event: Not used
+        :return: A slack message containing the upcoming after work events
+        """
+
+        # Assume that we only need to scan once and no partial result will be returned.
+        # I mean come on, how many after works can you plan?
+        results = self.afterwork_table.scan(
             FilterExpression=Attr('Date').gte(datetime.now().strftime("%Y-%m-%d"))
         )
 
@@ -129,12 +165,18 @@ class Afterwork:
             return self.__private_slack_text("No upcoming after work.. Perhaps you want to create one?")
 
     def create_afterwork(self, command, event):
-
+        """
+        Creates a new after work event.
+        :param command: parse this to get day, time and place
+        :param event: the full lambda event
+        :return:
+        """
         day = command[1]
+
         try:
-            time = command[2]
+            afterwork_time = command[2]
         except IndexError:
-            time = "17:30"
+            afterwork_time = "17:30"
 
         if len(command) > 3:
             place = " ".join(command[3:])
@@ -142,18 +184,18 @@ class Afterwork:
             place = 'Unspecified location'
 
         channel_id = self.__get_channel_id()
-
         author = self.__get_user_name(event)
+        date = self.__get_date(day)
 
-        day_num = self.__is_day_valid(day)
-        if day_num is not None:
-            date = self.__get_next_weekday(datetime.now().strftime("%Y-%m-%d"), day_num)
+        self.logger.info(date)
+
+        if date is not -1:
             try:
-                self.awtable.put_item(
+                self.afterwork_table.put_item(
                     Item={
                         'Date': date,
                         'Location': place,
-                        'Time': time,
+                        'Time': afterwork_time,
                         'Author': author,
                         'Channel': channel_id,
                         'Participants': [author]
@@ -170,8 +212,9 @@ class Afterwork:
 
             self.logger.info('Created a new after work')
             self.slack.chat.post_message(
-                text="""Hi! %s created an after work! \n *%s* at *%s* \n *%s* \n To join type */afterwork join %s*"""
-                     % (author, calendar.day_name[day_num], time, place, day),
+                text="Hi! {author} created an after work! \n *{weekday} ({date})* at *{place}* \n To join type */afterwork join {date}* or */afterwork join {weekday}* if is within this or next week.".format(
+                    author=author, weekday=self.__parse_date_to_weekday(date), date=date, place=place,
+                ),
                 channel=channel_id,
                 username=os.environ['botName']
             )
@@ -179,17 +222,21 @@ class Afterwork:
                 "*Sweet*! After work event created!")
         else:
             return self.__private_slack_text(
-                "You cannot create an afterwork on that day! Valid days are monday to friday")
+                "You cannot create an afterwork on that day! Valid days are monday to friday (today or in the future)")
 
     def join_afterwork(self, command, event):
-        day = command[1]
+        """
+        Join an already existing afterwork
+        :param command: parse the date of the command
+        :param event: the full lambda event
+        :return:
+        """
         author = self.__get_user_name(event)
+        date = self.__get_date(command[1])
 
-        day_num = self.__is_day_valid(day)
-        if day_num is not None:
-            date = self.__get_next_weekday(datetime.now().strftime("%Y-%m-%d"), day_num)
+        if date is not -1:
             try:
-                self.awtable.update_item(
+                self.afterwork_table.update_item(
                     Key={
                         'Date': date
                     },
@@ -202,23 +249,29 @@ class Afterwork:
                     ReturnValues="UPDATED_NEW"
                 )
 
-                return self.__private_slack_text("Great! You've joined the after work on " + day + "!")
+                return self.__private_slack_text("*Great!* You've joined the after work on {weekday}!".format(
+                    weekday=self.__parse_date_to_weekday(date)
+                ))
             except exceptions.ClientError as e:
                 self.logger.error(e)
                 return self.__private_slack_text(
-                    "I'm sorry, I couldn't join you to that after work. Perhaps you are already participating?")
+                    "*Oops!* I couldn't join you to that after work. Maybe you are already participating?")
         else:
-            return self.__private_slack_text("Sorry, I couldn't find an after work that day.")
+            return self.__private_slack_text("*Sorry!* I couldn't find an after work that day.")
 
     def leave_afterwork(self, command, event):
-        day = command[1]
+        """
+        Leave an upcoming after work event
+        :param command: used to parse the date
+        :param event: the full lambda event
+        :return:
+        """
         author = self.__get_user_name(event)
+        date = self.__get_date(command[1])
 
-        day_num = self.__is_day_valid(day)
-        if day_num is not None:
-            date = self.__get_next_weekday(datetime.now().strftime("%Y-%m-%d"), day_num)
+        if date is not -1:
 
-            result = self.awtable.get_item(
+            result = self.afterwork_table.get_item(
                 Key={
                     'Date': date
                 }
@@ -230,7 +283,7 @@ class Afterwork:
                 except ValueError:
                     pass
                 try:
-                    self.awtable.update_item(
+                    self.afterwork_table.update_item(
                         Key={
                             'Date': date
                         },
@@ -240,24 +293,30 @@ class Afterwork:
                         },
                         ReturnValues="UPDATED_NEW"
                     )
-                    return self.__private_slack_text("You are now removed from the after work!")
+                    return self.__private_slack_text("*Done!* You are now removed from the after work on {weekday}!".format(
+                        weekday=self.__parse_date_to_weekday(date)
+                    ))
                 except exceptions.ClientError as e:
                     self.logger.error(e)
                     return self.__private_slack_text(
-                        "*Oops*. Something went wrong when removing you from the after work!")
+                        "*Oops!* Something went wrong when removing you from the after work!")
             else:
-                return self.__private_slack_text("Are you really joined to that after work?")
+                return self.__private_slack_text("*Oops!* Are you really joined to that after work?")
         return "Couldn't find any after work on that day."
 
     def delete_afterwork(self, command, event):
-        day = command[1]
+        """
+        Try to delete an after work event
+        :param command: the input command given
+        :param event: the full lambda event
+        :return:
+        """
         author = self.__get_user_name(event)
+        date = self.__get_date(command[1])
 
-        day_num = self.__is_day_valid(day)
-        if day_num is not None:
-            date = self.__get_next_weekday(datetime.now().strftime("%Y-%m-%d"), day_num)
+        if date is not -1:
             try:
-                self.awtable.delete_item(
+                self.afterwork_table.delete_item(
                     Key={
                         'Date': date
                     },
@@ -266,21 +325,26 @@ class Afterwork:
                         ':i': author
                     }
                 )
-                self.slack.chat.post_message(
-                    text="The after work on %s has been cancelled, sorry!" % day,
-                    channel=self.__get_channel_id(),
-                    username=os.environ['botName']
-                )
+                # self.slack.chat.post_message(
+                #     text="The after work on {date} has been cancelled, sorry!".format(
+                #         date=self.__parse_date_to_weekday(date)
+                #     ),
+                #     channel=self.__get_channel_id(),
+                #     username=os.environ['botName']
+                # )
                 return self.__private_slack_text("*Gotcha*! After work event deleted.")
             except Exception as e:
                 self.logger.error(e)
-                return self.__private_slack_text("Unable to remove you from the after work event.")
+                return self.__private_slack_text("*Sorry!* I was unable to remove you from the after work event.")
         else:
-            return self.__private_slack_text("That after work doesn't seem to exist.")
+            return self.__private_slack_text("*Oops!* That date seems incorrect!")
 
     def todays_afterwork(self):
-
-        response = self.awtable.get_item(
+        """
+        Runs automatically on a cloudwatch schedule each day to look for any after work events today
+        :return: A message in the slack channel notifying anyone of an upcoming after work event
+        """
+        response = self.afterwork_table.get_item(
             Key={
                 'Date': datetime.today().strftime("%Y-%m-%d")
             }
@@ -291,9 +355,7 @@ class Afterwork:
             if 'Participants' in response['Item'] and len(response['Item']['Participants']) > 0:
                 event = "*Reminder * Today there's an after work planned! \n"
 
-                weekday = datetime.strptime(response['Item']['Date'], "%Y-%m-%d").weekday()
-
-                event += "*" + calendar.day_name[weekday] + "*"
+                event += "*" + self.__parse_date_to_weekday(response['Item']['Date']) + "*"
 
                 if 'Time' in response['Item']:
                     event += " at *" + response['Item']['Time'] + "*"

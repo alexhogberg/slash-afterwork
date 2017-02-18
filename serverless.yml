@@ -15,6 +15,7 @@ functions:
       authKey: ${file(./conf.yml):authKey}
       botName: ${file(./conf.yml):botName}
       channelName: ${file(./conf.yml):channelName}
+      tableName: ${file(./conf.yml):tableName}
     handler: handler.index
     events:
       - http:
@@ -36,7 +37,7 @@ resources:
     DynamoDbTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: "afterworks"
+        TableName: ${file(./conf.yml):tableName}
         AttributeDefinitions:
           -
             AttributeName: "Date"
