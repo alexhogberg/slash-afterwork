@@ -287,7 +287,7 @@ class Afterwork:
         )
 
         if 'Item' in response and len(response['Item']) > 0:
-            channel = response['Item']['Channel']
+            channel = os.environ['channelName']
 
             if 'Participants' in response['Item'] and len(response['Item']['Participants']) > 0:
                 event = "*Reminder * Today there's an after work planned! \n"
