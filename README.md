@@ -27,6 +27,7 @@ apiKey: <SLACK_SLASH_COMMAND_API_KEY>
 authKey: <SLACK_BOT_API_KEY>
 botName: <BOT_NAME>
 channelName: <CHANNEL_NAME>
+tableName: <DYNAMODB_TABLE_NAME>
 ```
 
 The `apiKey` is so that the lambda can integrate with the slack API. You get this key when you setup your slash command in the Slack API. `authKey` is the slack bot key that is retrieved from Slack Bot API. `botName` is used to send the channel messages with a specific name.
@@ -65,7 +66,7 @@ leave <day>
 delete <day>
 ```
 
-Days are monday-friday or mon-fri.
+Days are either monday-friday or mon-fri or a specified date in Y-m-d.
 
 To see the upcoming after work events run: `/afterwork list`
 ```
