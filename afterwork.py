@@ -29,20 +29,8 @@ class Afterwork:
         }
 
     @staticmethod
-    def __get_user_name(event):
-        return "<@" + event['user_id'] + "|" + event['user_name'] + ">"
-
-    def __get_channel_id(self):
-        channel_list = self.slack.channels.list()
-
-        channel_id = 0
-
-        for channel in channel_list.body['channels']:
-            if channel['name'] == os.environ['channelName']:
-                channel_id = channel['id']
-                break
-
-        return channel_id
+    def __get_user_name(user):
+        return "<@" + user['user_id'] + "|" + user['user_name'] + ">"
 
     @staticmethod
     def __is_day_formatted_as_date(day):
@@ -63,15 +51,29 @@ class Afterwork:
     def __parse_date_to_weekday(date):
         return calendar.day_name[datetime.strptime(date, "%Y-%m-%d").weekday()]
 
+    def __get_channel_id(self):
+        channel_list = self.slack.channels.list()
+
+        channel_id = 0
+
+        for channel in channel_list.body['channels']:
+            if channel['name'] == os.environ['channelName']:
+                channel_id = channel['id']
+                break
+
+        return channel_id
+
     def __get_day_number(self, weekday_name):
         weekday = weekday_name.lower().capitalize()
 
         try:
             # User should be able to write tuesday or tue, both should work
             if len(weekday) is 3:
-                day_num = time.strptime(weekday, '%a').tm_wday
+                operator = '%a'
             else:
-                day_num = time.strptime(weekday, '%A').tm_wday
+                operator = '%A'
+
+            day_num = time.strptime(weekday, operator).tm_wday
 
             if 0 <= day_num < 5:
                 return day_num
@@ -79,26 +81,26 @@ class Afterwork:
             self.logger.info("Invalid weekday specified: {weekday}".format(
                 weekday=weekday
             ))
-            return -1
+            return None
 
-        return -1
+        return None
 
     def __get_date(self, date):
         if self.__is_day_formatted_as_date(date):
             # Make sure date is in the future
             if datetime.today() >= datetime.strptime(date, "%Y-%m-%d"):
-                return -1
+                return None
 
             weekday_name = self.__parse_date_to_weekday(date)
             day_number = self.__get_day_number(weekday_name)
-            if day_number is not -1:
+            if day_number is not None:
                 return date
         else:
             day_number = self.__get_day_number(date)
-            if day_number is not -1:
+            if day_number is not None:
                 return self.__get_next_weekday_as_date(day_number)
 
-        return -1
+        return None
 
     def parse_command(self, command, event):
         """
@@ -189,7 +191,7 @@ class Afterwork:
 
         self.logger.info(date)
 
-        if date is not -1:
+        if date is not None:
             try:
                 self.afterwork_table.put_item(
                     Item={
@@ -234,7 +236,7 @@ class Afterwork:
         author = self.__get_user_name(event)
         date = self.__get_date(command[1])
 
-        if date is not -1:
+        if date is not None:
             try:
                 self.afterwork_table.update_item(
                     Key={
@@ -269,7 +271,7 @@ class Afterwork:
         author = self.__get_user_name(event)
         date = self.__get_date(command[1])
 
-        if date is not -1:
+        if date is not None:
 
             result = self.afterwork_table.get_item(
                 Key={
@@ -314,7 +316,7 @@ class Afterwork:
         author = self.__get_user_name(event)
         date = self.__get_date(command[1])
 
-        if date is not -1:
+        if date is not None:
             try:
                 self.afterwork_table.delete_item(
                     Key={
@@ -325,13 +327,13 @@ class Afterwork:
                         ':i': author
                     }
                 )
-                # self.slack.chat.post_message(
-                #     text="The after work on {date} has been cancelled, sorry!".format(
-                #         date=self.__parse_date_to_weekday(date)
-                #     ),
-                #     channel=self.__get_channel_id(),
-                #     username=os.environ['botName']
-                # )
+                self.slack.chat.post_message(
+                    text="The after work on {date} has been cancelled, sorry!".format(
+                        date=self.__parse_date_to_weekday(date)
+                    ),
+                    channel=self.__get_channel_id(),
+                    username=os.environ['botName']
+                )
                 return self.__private_slack_text("*Gotcha*! After work event deleted.")
             except Exception as e:
                 self.logger.error(e)

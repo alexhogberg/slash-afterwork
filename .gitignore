@@ -1,6 +1,0 @@
-.gitignore
-conf.yml
-.serverless
-.idea
-requests*/
-slacker*/
