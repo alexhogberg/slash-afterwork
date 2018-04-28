@@ -1,0 +1,24 @@
+{
+  "name": "slash-afterwork",
+  "version": "1.0.0",
+  "description": "This slash command is a utility for creating after work events with your team. It is built with serverless and comes with an automatic setup.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alexhogberg/slash-afterwork.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/alexhogberg/slash-afterwork/issues"
+  },
+  "homepage": "https://github.com/alexhogberg/slash-afterwork#readme",
+  "dependencies": {
+    "serverless": "^1.26.1",
+    "serverless-python-requirements": "^4.0.2"
+  }
+}

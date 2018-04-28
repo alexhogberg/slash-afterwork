@@ -2,6 +2,14 @@ service: mm-afterwork
 package:
   include:
     - afterwork.py
+    - packages
+
+plugins:
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    dockerizePip: non-linux
 
 provider:
   name: aws
@@ -16,6 +24,7 @@ functions:
       botName: ${file(./conf.yml):botName}
       channelName: ${file(./conf.yml):channelName}
       tableName: ${file(./conf.yml):tableName}
+      googleMapsApiKey: ${file(./conf.yml):googleMapsApiKey}
     handler: handler.index
     events:
       - http:

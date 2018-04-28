@@ -13,14 +13,9 @@ The services used are:
 * Lambda - Used for the actual processing of the commands from Slack.
 
 ## Installation
-To install slash-afterwork you simply clone this repository and make sure that you have an AWS profile setup and ready. You also need to have serverless installed.
+To install serverless dependency: `npm install`
 
-If not, run `npm -g install serverless`.
-
-### Slacker
-Slacker is used to integrate directly to slack using the bot API. This enables direct messages as well as announcements into a certain channel. You need to create a bot user and retrieve a bot token to use it. When the bot is ready install [Slacker](https://github.com/os/slacker) locally `pip install -t . slacker`. __NOTE:__ make sure that you are in the root folder of your project when running `pip`.
-
-Serverless will automatically include it when deploying since it is located in the root folder of the project.
+Serverless will handle packaging of requirements on deploy so don't worry about that.
 
 ### Configuration
 The configuration is stored in the `conf.yml`. The file looks as follows:
@@ -30,6 +25,7 @@ authKey: <SLACK_BOT_API_KEY>
 botName: <BOT_NAME>
 channelName: <CHANNEL_NAME>
 tableName: <DYNAMODB_TABLE_NAME>
+googleMapsApiKey: <GOOGLE_API_KEY>
 ```
 
 The `apiKey` is so that the lambda can integrate with the slack API. You get this key when you setup your slash command in the Slack API. `authKey` is the slack bot key that is retrieved from Slack Bot API. `botName` is used to send the channel messages with a specific name.
@@ -66,7 +62,10 @@ create <day> <time> <place>
 join <day>
 leave <day>
 delete <day>
+suggest <area>
 ```
+
+Suggest will give you top 5 recommendations from Google around the area you specified, e.g. Gamla Stan, Old Trafford.
 
 Days are either monday-friday or mon-fri or a specified date in Y-m-d.
 

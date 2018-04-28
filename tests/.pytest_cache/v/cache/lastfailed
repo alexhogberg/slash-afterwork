@@ -1,0 +1,7 @@
+{
+  "test_afterwork.py::test_handle_interactive_event": true, 
+  "test_afterwork.py::test_suggest_api": true, 
+  "test_handler.py": true, 
+  "test_helpers.py::test_parse_query_string": true, 
+  "test_slack.py::SlackTestCase::test_send_public_message": true
+}
