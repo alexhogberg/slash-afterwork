@@ -1,0 +1,5 @@
+conf.yml
+packages
+node_modules
+.serverless
+*.pyc
