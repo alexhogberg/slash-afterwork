@@ -15,17 +15,21 @@ class AfterworkDAL:
         self.afterwork_table = self.dynamodb.Table(os.environ['tableName'])
 
     def insert_afterwork(self, date, place, place_id, afterwork_time, author, channel_id):
+        item = {
+            'Date': date,
+            'Location': place,
+            'Time': afterwork_time,
+            'Author': author,
+            'Channel': channel_id,
+            'Participants': [author]
+        }
+
+        if place_id is not None:
+            item['PlaceId'] = place_id
+
         try:
             self.afterwork_table.put_item(
-                Item={
-                    'Date': date,
-                    'Location': place,
-                    'PlaceId': place_id,
-                    'Time': afterwork_time,
-                    'Author': author,
-                    'Channel': channel_id,
-                    'Participants': [author]
-                },
+                Item=item,
                 ConditionExpression="attribute_not_exists(#d)",
                 ExpressionAttributeNames={
                     '#d': 'Date'

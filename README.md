@@ -6,11 +6,18 @@ This slash command is a utility for creating after work events with your team. I
 ## Description
 The command is built with serverless using AWS services to run which enables super simple setup.
 
+## Prerequisites
+You need the following to deploy the solution:
+* An AWS Account
+* A slack team that you have the ability to manage
+* A Google Places API key
+
 ### Services
 The services used are:
 * DynamoDB - Used for storing information about the after work events
 * API Gateway - Used to receive commands from Slack.
 * Lambda - Used for the actual processing of the commands from Slack.
+* Google Places API - Used to suggesting places to go for afterwork
 
 ## Installation
 To install serverless dependency: `npm install`
