@@ -1,5 +1,5 @@
 # slash-afterwork
-https://circleci.com/gh/alexhogberg/slash-afterwork.svg?style=shield&circle-token=:circle-token
+![CircleCI](https://circleci.com/gh/alexhogberg/slash-afterwork.svg?style=shield&circle-token=:circle-token)
 
 This slash command is a utility for creating after work events with your team. It is built with serverless and comes with an automatic setup.
 
