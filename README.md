@@ -108,3 +108,5 @@ Since this was built quite fast I have yet to implement a couple of other featur
 * ~~Notify channel when it is time for after work~~ Added in [ebe4dd4](https://github.com/alexhogberg/slash-afterwork/commit/ebe4dd4164ef320117a9a905102d1a3d67861256)
 * Smarter handling of date parameter, e.g. `/afterwork create friday in two weeks 16:00 TBD`
 * ~~Install slacker for better integration with the Slack API~~ Added in [ebe4dd4](https://github.com/alexhogberg/slash-afterwork/commit/ebe4dd4164ef320117a9a905102d1a3d67861256)
+* Add support to create afterwork with Google Places integration (only possible through suggest)
+* Add inline responses and multiple options for time and date when using suggest
