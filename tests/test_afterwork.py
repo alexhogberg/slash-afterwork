@@ -1,17 +1,5 @@
 # coding=utf8
-import os
-import pprint
-from lib import afterwork
-from lib.utils import config
 from lib.utils.helpers import is_day_formatted_as_date, get_user_name
-
-conf = config.Config()
-
-os.environ['tableName'] = conf['tableName']
-os.environ['apiKey'] = conf['apiKey']
-os.environ['googleMapsApiKey'] = conf['googleMapsApiKey']
-
-afterwork_handler = afterwork.Afterwork()
 
 
 def test_get_user_name():

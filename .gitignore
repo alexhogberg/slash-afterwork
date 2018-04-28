@@ -3,3 +3,6 @@ packages
 node_modules
 .serverless
 *.pyc
+bin/
+.idea
+.pytest_cache
