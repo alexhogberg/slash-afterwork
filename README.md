@@ -1,4 +1,6 @@
 # slash-afterwork
+https://circleci.com/gh/alexhogberg/slash-afterwork.svg?style=shield&circle-token=:circle-token
+
 This slash command is a utility for creating after work events with your team. It is built with serverless and comes with an automatic setup.
 
 ## Description
@@ -18,7 +20,7 @@ If not, run `npm -g install serverless`.
 ### Slacker
 Slacker is used to integrate directly to slack using the bot API. This enables direct messages as well as announcements into a certain channel. You need to create a bot user and retrieve a bot token to use it. When the bot is ready install [Slacker](https://github.com/os/slacker) locally `pip install -t . slacker`. __NOTE:__ make sure that you are in the root folder of your project when running `pip`.
 
-Serverless will automatically include it when deploying since it is located in the root folder of the project. 
+Serverless will automatically include it when deploying since it is located in the root folder of the project.
 
 ### Configuration
 The configuration is stored in the `conf.yml`. The file looks as follows:
@@ -38,7 +40,7 @@ When this is complete you can setup your stack using `serverless deploy`.
 Make a note of the `endpoints` that is returned from the deployment command. This value is your endpoint in the Slack Slash command. Go ahead and copy/paste that url to Slack and save the integration.
 
 ### Notifications
-The serverless sets up a cron for scheduling daily invocations of the lambda in order to look for after work events today. 
+The serverless sets up a cron for scheduling daily invocations of the lambda in order to look for after work events today.
 It is configured in `serverless.yml`
 
 ```
