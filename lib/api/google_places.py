@@ -26,3 +26,30 @@ class GooglePlaces:
             place_id=place_id
         )
         return Place(place['result'])
+
+    def get_place_suggestions(self, place_name):
+        self.logger.info(place_name)
+        suggestions = {
+            'options': []
+        }
+
+        try:
+            places = self.gMaps.places(
+                query=place_name,
+                type='bar'
+            )
+
+            self.logger.info(places)
+
+            for place in places['results']:
+                suggestions['options'].append({
+                    'label': place['name'],
+                    'value': place['place_id']
+                })
+
+            return suggestions
+        except:
+            raise
+
+
+

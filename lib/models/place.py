@@ -35,7 +35,6 @@ class Place:
     def image_url(self):
         return self.gMapsPlace.get('icon')
 
-
     def format_action(self):
         return {
             'name': 'afterwork',
@@ -43,6 +42,32 @@ class Place:
             'type': 'button',
             'value': self.gMapsPlace['place_id']
         }
+
+    def build_place_dialog(self):
+        dialog = {
+            'title': 'Create an afterwork',
+            'submit_label': 'create',
+            'callback_id': "{create}|{place_id}".format(
+                place_id=self.gMapsPlace['place_id'],
+                create='create_afterwork_suggest'
+            ),
+            'elements': [
+                {
+                    'label': 'Which day?',
+                    'type': 'text',
+                    'name': 'afterwork_day',
+                    'placeholder': 'Select a day, just like you would say it'
+                },
+                {
+                    'label': 'What time?',
+                    'type': 'text',
+                    'name': 'afterwork_time',
+                    'placeholder': 'Pick a time, any time!'
+                }
+            ]
+        }
+
+        return dialog
 
     def format_attachment(self, add_actions=True):
         attachment = {

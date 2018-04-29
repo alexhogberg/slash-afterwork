@@ -2,6 +2,7 @@ import logging
 import os
 
 from slacker import Slacker
+from slackclient import SlackClient
 
 
 class Slack:
@@ -9,6 +10,7 @@ class Slack:
         self.logger = logging.getLogger()
         self.logger.setLevel(logging.INFO)
         self.slack = Slacker(api_key or None)
+        self.slack_client = SlackClient(api_key or None)
 
     @staticmethod
     def private_slack_text(text):
@@ -41,3 +43,12 @@ class Slack:
             ts=ts,
             text=text
         )
+
+    def open_dialog(self, trigger_id, dialog):
+        open_dialog = self.slack_client.api_call(
+            "dialog.open",
+            trigger_id=trigger_id,
+            dialog=dialog
+        )
+
+        return open_dialog

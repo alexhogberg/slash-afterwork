@@ -17,6 +17,20 @@ provider:
   region: eu-west-1
 
 functions:
+  placesuggester:
+    environment:
+      apiKey: ${file(./conf.yml):apiKey}
+      authKey: ${file(./conf.yml):authKey}
+      googleMapsApiKey: ${file(./conf.yml):googleMapsApiKey}
+    handler: suggester.index
+    events:
+      - http:
+          path: placessuggester
+          method: post
+          integration: lambda
+          request:
+            template:
+              application/json: ${file(./s-templates.s)}
   afterwork:
     environment:
       apiKey: ${file(./conf.yml):apiKey}

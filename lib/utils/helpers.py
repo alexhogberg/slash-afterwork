@@ -2,6 +2,7 @@
 import calendar
 import time
 from datetime import datetime, timedelta
+import parsedatetime as pdt
 
 from lib.api.google_places import GooglePlaces
 
@@ -56,54 +57,72 @@ def get_day_number(weekday_name):
 
 
 def get_date(date):
-    if is_day_formatted_as_date(date):
-        # Make sure date is in the future
-        if datetime.today() >= datetime.strptime(date, "%Y-%m-%d"):
-            return None
+    natural_date = pdt.Calendar().parseDT(date)[0]
+    print(natural_date)
+    if datetime.today() >= natural_date:
+        print('is before, wont allow it')
+        return None
 
-        weekday_name = parse_date_to_weekday(date)
-        day_number = get_day_number(weekday_name)
-        if day_number is not None:
-            return date
-    else:
-        day_number = get_day_number(date)
-        if day_number is not None:
-            return get_next_weekday_as_date(day_number)
-
-    return None
+    return natural_date.strftime('%Y-%m-%d')
 
 
 def print_afterwork_list(results):
     places = GooglePlaces()
-    events = "Upcoming after work: \n"
+    events = {
+        'text': 'Upcoming after work events',
+        'attachments': []
+    }
+
     for item in results['Items']:
+        place = places.get_place_information(item['PlaceId'])
         weekday = datetime.strptime(item['Date'], "%Y-%m-%d").weekday()
-
-        events += "*" + calendar.day_name[weekday] + "*"
-
-        if 'Time' in item:
-            events += " at *" + item['Time'] + "*"
-
-        if 'Location' in item and item['Location'] != 'GPlaces':
-            events += " by *" + item['Location'] + "*"
-
-        if 'PlaceId' in item:
-            place = places.get_place_information(item['PlaceId'])
-            events += " by *" + place.name() + "*"
-            events += " by *" + place.address() + "*"
-
-        events += " started by *" + item['Author'] + "*"
+        attachment = {
+            'title': '{place} on {weekday} at {time}'.format(
+                place=place.name(),
+                weekday=calendar.day_name[weekday],
+                time=item['Time']
+            ),
+            'callback_id': 'handle_afterwork',
+            'fields': [
+                {
+                    'title': 'Rating',
+                    'value': place.rating(),
+                    'short': 1
+                },
+                {
+                    'title': 'Address',
+                    'value': place.address(),
+                    'short': 1
+                }
+            ],
+            'color': place.format_open()['color'],
+            'author_name': 'Created by: ' + item['Author'],
+            'text': '',
+            'actions': [
+                {
+                    'name': 'afterwork',
+                    'text': 'Join afterwork',
+                    'type': 'button',
+                    'style': 'primary',
+                    'value': 'join_afterwork|' + item['Date']
+                },
+                {
+                    'name': 'afterwork',
+                    'text': 'Leave afterwork',
+                    'type': 'button',
+                    'style': 'danger',
+                    'value': 'leave_afterwork|' + item['Date']
+                }
+            ]
+        }
 
         if 'Participants' in item and len(item['Participants']) > 0:
-            events += "\n *Participants:* \n"
+            attachment['text'] += "\n *Participants:* \n"
             for participant in item['Participants']:
-                events += participant + "\n"
+                attachment['text'] += participant + "\n"
         else:
-            events += "\nNo one is participating in this after work, *yet...*"
-
-        events += "\n To join type */afterwork join %s*" % calendar.day_name[weekday].lower()
-        events += "\n"
-
+            attachment['text'] += "\nNo one is participating in this after work, *yet...*"
+        events['attachments'].append(attachment)
     return events
 
 
@@ -147,3 +166,35 @@ def print_afterwork_created(author, date, place):
     if is within this or next week.""".format(
         author=author, weekday=parse_date_to_weekday(date), date=date, place=place,
     )
+
+
+def build_create_dialog():
+    dialog = {
+        'title': 'Create an afterwork',
+        'submit_label': 'Create',
+        'callback_id': "create_afterwork_dialog|",
+        'elements': [
+            {
+                'label': 'Where?',
+                'type': 'select',
+                'data_source': 'external',
+                'min_query_length': 3,
+                'name': 'afterwork_place',
+                'placeholder': 'Select a location and we will try to map it'
+            },
+            {
+                'label': 'Which day?',
+                'type': 'text',
+                'name': 'afterwork_day',
+                'placeholder': 'Select a day, just like you would say it'
+            },
+            {
+                'label': 'What time?',
+                'type': 'text',
+                'name': 'afterwork_time',
+                'placeholder': 'Pick a time, any time!'
+            }
+        ]
+    }
+
+    return dialog

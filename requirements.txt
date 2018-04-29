@@ -5,3 +5,5 @@ googlemaps==2.5.1
 pytest==3.5.1
 slacker==0.9.65
 mock
+slackclient
+parsedatetime
