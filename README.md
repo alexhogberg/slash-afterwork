@@ -51,6 +51,7 @@ rate: cron(0 12 ? * MON-FRI *)
 ```
 You may alter this command if you want the announcement to be made at a different time.
 
+
 ## Commands
 Once everything is deployed you are ready to run commands to slash-afterwork. Not suprisingly, the slash command is:
 
@@ -65,7 +66,7 @@ Only running `/afterwork` will give you the available options.
 
 No command given, Possible commands are:
 list
-create <day> <time> <place>
+create
 join <day>
 leave <day>
 delete <day>
@@ -74,7 +75,10 @@ suggest <area>
 
 Suggest will give you top 5 recommendations from Google around the area you specified, e.g. Gamla Stan, Old Trafford.
 
-Days are either monday-friday or mon-fri or a specified date in Y-m-d.
+Running `/afterwork create` will open a dialog with inline suggestions for real bars
+around the value you specify. Add your time and date after that and you are good to go
+
+The date can be specified however you like, we'll try to parse it into a proper date for storage.
 
 To see the upcoming after work events run: `/afterwork list`
 ```
@@ -113,7 +117,9 @@ You can only do this if you are the author of the after work event.
 ## Future improvements
 Since this was built quite fast I have yet to implement a couple of other features:
 * ~~Notify channel when it is time for after work~~ Added in [ebe4dd4](https://github.com/alexhogberg/slash-afterwork/commit/ebe4dd4164ef320117a9a905102d1a3d67861256)
-* Smarter handling of date parameter, e.g. `/afterwork create friday in two weeks 16:00 TBD`
+* ~~Smarter handling of date parameter, e.g.~~ `/afterwork create friday in two weeks 16:00 TBD` Added in [63811db](https://github.com/alexhogberg/slash-afterwork/commit/63811bdcecbb82268f9574589e505cd007ad74bb)
 * ~~Install slacker for better integration with the Slack API~~ Added in [ebe4dd4](https://github.com/alexhogberg/slash-afterwork/commit/ebe4dd4164ef320117a9a905102d1a3d67861256)
-* Add support to create afterwork with Google Places integration (only possible through suggest)
-* Add inline responses and multiple options for time and date when using suggest
+* ~~Add support to create afterwork with Google Places integration (only possible through suggest)~~ Added in [63811db](https://github.com/alexhogberg/slash-afterwork/commit/63811bdcecbb82268f9574589e505cd007ad74bb)
+* ~~Add inline responses and multiple options for time and date when using suggest~~ Added in [63811db](https://github.com/alexhogberg/slash-afterwork/commit/63811bdcecbb82268f9574589e505cd007ad74bb)
+* Better multi tenancy options and smoother setup with Slack API
+* Able to join an afterwork via the slack message
