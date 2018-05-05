@@ -66,7 +66,7 @@ def get_date(date):
     return natural_date.strftime('%Y-%m-%d')
 
 
-def print_afterwork_list(results):
+def print_afterwork_list(results, user):
     places = GooglePlaces()
     events = {
         'text': 'Upcoming after work events',
@@ -75,7 +75,8 @@ def print_afterwork_list(results):
 
     for item in results['Items']:
         place = places.get_place_information(item['PlaceId'])
-        weekday = datetime.strptime(item['Date'], "%Y-%m-%d").weekday()
+        aw_date = item['Date'].split('|')[1]
+        weekday = datetime.strptime(aw_date, "%Y-%m-%d").weekday()
         attachment = {
             'title': '{place} on {weekday} at {time}'.format(
                 place=place.name(),
@@ -104,17 +105,26 @@ def print_afterwork_list(results):
                     'text': 'Join afterwork',
                     'type': 'button',
                     'style': 'primary',
-                    'value': 'join_afterwork|' + item['Date']
+                    'value': 'join_afterwork|' + aw_date
                 },
                 {
                     'name': 'afterwork',
                     'text': 'Leave afterwork',
                     'type': 'button',
                     'style': 'danger',
-                    'value': 'leave_afterwork|' + item['Date']
+                    'value': 'leave_afterwork|' + aw_date
                 }
             ]
         }
+
+        if user == item['Author']:
+            attachment['actions'].append({
+                'name': 'afterwork',
+                'text': 'Delete afterwork',
+                'type': 'button',
+                'style': 'danger',
+                'value': 'delete_afterwork|' + aw_date
+            })
 
         if 'Participants' in item and len(item['Participants']) > 0:
             attachment['text'] += "\n *Participants:* \n"
@@ -124,6 +134,22 @@ def print_afterwork_list(results):
             attachment['text'] += "\nNo one is participating in this after work, *yet...*"
         events['attachments'].append(attachment)
     return events
+
+def print_afterwork_create():
+    return {
+        'text': 'There is no upcoming afterwork event planned',
+        'attachments': [{
+            'callback_id': 'handle_afterwork',
+            'actions': [{
+                'name': 'afterwork',
+                'text': 'Create afterwork',
+                'type': 'button',
+                'style': 'primary',
+                'value': 'create_afterwork|'
+            }]
+        }]
+
+    }
 
 
 def print_afterwork_today(results):
@@ -159,14 +185,43 @@ def print_possible_commands():
                 \nlist \ncreate <day> <time> <place>\njoin <day>\nleave <day>\ndelete <day>"""
 
 
-def print_afterwork_created(author, date, place):
-    return """Hi! {author} created an after work! \n 
-    *{weekday} ({date})* at *{place}* \n 
-    To join type */afterwork join {date}* or */afterwork join {weekday}* 
-    if is within this or next week.""".format(
-        author=author, weekday=parse_date_to_weekday(date), date=date, place=place,
-    )
-
+def print_afterwork_created(author, date, place, time):
+    return {
+        'text': 'A new afterwork was created!',
+        'attachments': [
+            {
+                'author_name': 'Started by: ' + author,
+                'color': '#36a64f',
+                'title': place.name(),
+                'title_link': place.url(),
+                'callback_id': 'handle_afterwork',
+                'text': parse_date_to_weekday(date) + ' ' + date + ' at ' + time,
+                'fields': [
+                    {
+                        'title': 'Address',
+                        'value': place.address(),
+                        'short': 1
+                    },
+                    {
+                        'title': 'Rating',
+                        'value': place.rating(),
+                        'short': 1
+                    }
+                ],
+                'actions': [
+                    {
+                        'name': 'afterwork',
+                        'text': 'Join this afterwork',
+                        'type': 'button',
+                        'style': 'primary',
+                        'value': 'join_afterwork|' + date
+                    }
+                ],
+                "footer": "Brought to you by Afterworker",
+                "footer_icon": "https://platform.slack-edge.com/img/default_application_icon.png"
+            }
+        ]
+    }
 
 def build_create_dialog():
     dialog = {

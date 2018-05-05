@@ -3,25 +3,24 @@ import json
 
 import logging
 import os
-import googlemaps
 
 from datetime import datetime
 from lib.api.dynamodb import AfterworkDAL
 from lib.api.google_places import GooglePlaces
 from lib.utils.helpers import get_user_name, get_date, parse_date_to_weekday, print_afterwork_list, get_valid_commands, \
     print_possible_commands, \
-    print_afterwork_created, print_afterwork_today, get_user_name_from_event, build_create_dialog
+    print_afterwork_created, print_afterwork_today, get_user_name_from_event, build_create_dialog, print_afterwork_create
 from lib.models.place import Place
 from lib.api.slack import Slack
 
 
 class Afterwork:
-    def __init__(self):
+    def __init__(self, team_id=None):
         self.logger = logging.getLogger()
         self.logger.setLevel(logging.INFO)
 
-        self.slack = Slack(api_key=os.environ['apiKey'])
-        self.afterwork_dal = AfterworkDAL()
+        self.slack = Slack(team_id)
+        self.afterwork_dal = AfterworkDAL(team_id)
         self.google_places = GooglePlaces()
 
     def parse_command(self, command, event):
@@ -57,12 +56,13 @@ class Afterwork:
 
         # Assume that we only need to scan once and no partial result will be returned.
         # I mean come on, how many after works can you plan?
+        user = get_user_name(event)
         results = self.afterwork_dal.list_afterworks()
-        events = print_afterwork_list(results)
+        events = print_afterwork_list(results, user)
         if 'Items' in results and len(results['Items']) > 0:
             return events
         else:
-            return self.slack.private_slack_text("No upcoming after work.. Perhaps you want to create one?")
+            return print_afterwork_create()
 
     def create_afterwork(self, command, event):
         """
@@ -137,13 +137,17 @@ class Afterwork:
         """
         author = get_user_name(event)
         date = get_date(command[1])
+        return self.delete_afterwork_event(author, date)
 
+
+    def delete_afterwork_event(self, author, date):
         if date is not None:
             try:
                 self.afterwork_dal.delete_afterwork(date, author)
                 self.slack.send_public_message(
-                    text="The after work on {date} has been cancelled, sorry!".format(
-                        date=parse_date_to_weekday(date)
+                    text="The after work on {date} ({full_date}) has been cancelled, sorry!".format(
+                        date=parse_date_to_weekday(date),
+                        full_date=date
                     ),
                     username=os.environ['botName']
                 )
@@ -153,6 +157,7 @@ class Afterwork:
                 return self.slack.private_slack_text("*Sorry!* I was unable to remove you from the after work event.")
         else:
             return self.slack.private_slack_text("*Oops!* That date seems incorrect!")
+
 
     def suggest_afterwork(self, command, event):
         area = "".join(command[1:])
@@ -204,9 +209,10 @@ class Afterwork:
             )
 
             self.logger.info('Created a new after work from suggestion')
-            full_place = "{name} at {address}".format(name=place.name(), address=place.address())
+            message = print_afterwork_created(author, get_date(date), place, time)
             self.slack.send_public_message(
-                text=print_afterwork_created(author, get_date(date), full_place),
+                text=message['text'],
+                attachments=message['attachments'],
                 username=os.environ['botName'])
 
             return {}
@@ -222,18 +228,17 @@ class Afterwork:
             }
 
     def handle_interactive_event(self, payload):
-        parsed_payload = json.loads(payload)
-        callback_id = parsed_payload.get('callback_id')
-        event_type = parsed_payload.get('type', None)
-        print(parsed_payload)
+        callback_id = payload.get('callback_id')
+        event_type = payload.get('type', None)
+        author = get_user_name_from_event(payload.get('user'))
+        print(payload)
 
         print("got type {type}".format(type=event_type))
 
         if event_type == 'interactive_message':
-            trigger_id = parsed_payload.get('trigger_id')
-            actions = parsed_payload.get('actions')
+            trigger_id = payload.get('trigger_id')
+            actions = payload.get('actions')
             place_id = actions[0]['value']
-            author = get_user_name_from_event(parsed_payload.get('user'))
 
             if callback_id == 'create_afterwork':
                 place = self.google_places.get_place_information(place_id)
@@ -250,10 +255,17 @@ class Afterwork:
                 elif action[0] == 'leave_afterwork':
                     return self.leave_afterwork_event(author, action[1])
 
+                elif action[0] == 'delete_afterwork':
+                    return self.delete_afterwork_event(author, action[1])
+
+                elif action[0] == 'create_afterwork':
+                    self.slack.open_dialog(trigger_id=trigger_id, dialog=build_create_dialog())
+                    return self.slack.private_slack_text('Follow the instructions in the dialog')
+
                 return self.slack.private_slack_text('Well this is awkward, something weird happened')
 
         elif event_type == 'dialog_submission':
-            submission = parsed_payload.get('submission')
+            submission = payload.get('submission')
             date = get_date(submission['afterwork_day'])
             time = submission['afterwork_time']
 

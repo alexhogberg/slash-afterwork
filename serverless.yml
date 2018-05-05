@@ -15,6 +15,7 @@ provider:
   name: aws
   runtime: python2.7
   region: eu-west-1
+  profile: personal
 
 functions:
   placesuggester:
@@ -53,14 +54,45 @@ functions:
           enabled: true
           input:
             triggerToken: ${file(./conf.yml):authKey}
+  afterworkAuthorizer:
+    environment:
+      apiKey: ${file(./conf.yml):apiKey}
+      authKey: ${file(./conf.yml):authKey}
+      botName: ${file(./conf.yml):botName}
+      channelName: ${file(./conf.yml):channelName}
+      tableName: ${file(./conf.yml):tableName}
+      googleMapsApiKey: ${file(./conf.yml):googleMapsApiKey}
+      clientId: ${file(./conf.yml):clientId}
+      clientSecret: ${file(./conf.yml):clientSecret}
+    handler: handler.authorize
+    events:
+      - http:
+          path: afterwork
+          method: get
+          integration: lambda
 
 
 resources:
   Resources:
+    AuthorizedUsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: authorizedApps
+        AttributeDefinitions:
+          -
+            AttributeName: "TeamId"
+            AttributeType: "S"
+        KeySchema:
+          -
+            AttributeName: "TeamId"
+            KeyType: "HASH"
+        ProvisionedThroughput:
+          ReadCapacityUnits: "2"
+          WriteCapacityUnits: "2"
     DynamoDbTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: ${file(./conf.yml):tableName}
+        TableName: afterworks
         AttributeDefinitions:
           -
             AttributeName: "Date"
@@ -84,5 +116,9 @@ resources:
               Action:
                 - dynamodb:*
               Resource: arn:aws:dynamodb:*:*:table/afterworks
+            - Effect: Allow
+              Action:
+                - dynamodb:*
+              Resource: arn:aws:dynamodb:*:*:table/authorizedApps
         Roles:
           - Ref: IamRoleLambdaExecution
