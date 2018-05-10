@@ -25,7 +25,6 @@ def handle_command(event):
     payload = event.get('payload', None)
 
 
-
     if payload is not None:
         parsed_payload = json.loads(payload)
         afterwork_handler = Afterwork(parsed_payload.get('team').get('id'))
