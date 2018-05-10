@@ -121,5 +121,5 @@ Since this was built quite fast I have yet to implement a couple of other featur
 * ~~Install slacker for better integration with the Slack API~~ Added in [ebe4dd4](https://github.com/alexhogberg/slash-afterwork/commit/ebe4dd4164ef320117a9a905102d1a3d67861256)
 * ~~Add support to create afterwork with Google Places integration (only possible through suggest)~~ Added in [63811db](https://github.com/alexhogberg/slash-afterwork/commit/63811bdcecbb82268f9574589e505cd007ad74bb)
 * ~~Add inline responses and multiple options for time and date when using suggest~~ Added in [63811db](https://github.com/alexhogberg/slash-afterwork/commit/63811bdcecbb82268f9574589e505cd007ad74bb)
-* Better multi tenancy options and smoother setup with Slack API
+* ~~Better multi tenancy options and smoother setup with Slack API~~ Added in [a659f9f](https://github.com/alexhogberg/slash-afterwork/commit/a659f9f1acfcaf043a7dc47339da8ec1e384a15e)
 * Able to join an afterwork via the slack message
