@@ -20,7 +20,6 @@ provider:
 functions:
   placesuggester:
     environment:
-      apiKey: ${file(./conf.yml):apiKey}
       authKey: ${file(./conf.yml):authKey}
       googleMapsApiKey: ${file(./conf.yml):googleMapsApiKey}
     handler: suggester.index
@@ -34,11 +33,10 @@ functions:
               application/json: ${file(./s-templates.s)}
   afterwork:
     environment:
-      apiKey: ${file(./conf.yml):apiKey}
       authKey: ${file(./conf.yml):authKey}
       botName: ${file(./conf.yml):botName}
       channelName: ${file(./conf.yml):channelName}
-      tableName: ${file(./conf.yml):tableName}
+      tableName: afterworks
       googleMapsApiKey: ${file(./conf.yml):googleMapsApiKey}
     handler: handler.index
     events:
@@ -56,11 +54,10 @@ functions:
             triggerToken: ${file(./conf.yml):authKey}
   afterworkAuthorizer:
     environment:
-      apiKey: ${file(./conf.yml):apiKey}
       authKey: ${file(./conf.yml):authKey}
       botName: ${file(./conf.yml):botName}
       channelName: ${file(./conf.yml):channelName}
-      tableName: ${file(./conf.yml):tableName}
+      tableName: afterworks
       googleMapsApiKey: ${file(./conf.yml):googleMapsApiKey}
       clientId: ${file(./conf.yml):clientId}
       clientSecret: ${file(./conf.yml):clientSecret}

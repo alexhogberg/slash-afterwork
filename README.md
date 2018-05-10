@@ -27,20 +27,23 @@ Serverless will handle packaging of requirements on deploy so don't worry about 
 ### Configuration
 The configuration is stored in the `conf.yml`. The file looks as follows:
 ```yml
-apiKey: <SLACK_SLASH_COMMAND_API_KEY>
 authKey: <SLACK_BOT_API_KEY>
 botName: <BOT_NAME>
 channelName: <CHANNEL_NAME>
-tableName: <DYNAMODB_TABLE_NAME>
 googleMapsApiKey: <GOOGLE_API_KEY>
+clientId: <CLIENT_ID>
+clientSecret: <CLIENT_SECRET>
 ```
 
-The `apiKey` is so that the lambda can integrate with the slack API. You get this key when you setup your slash command in the Slack API. `authKey` is the slack bot key that is retrieved from Slack Bot API. `botName` is used to send the channel messages with a specific name.
-`channelName` is the channel in your slack setup that annoucements should be sent to. __NOTE:__ the bot must be invited to the channel in order to send the message.
+`authKey` is the slack bot key that is retrieved from Slack Bot API. `botName` is used to send the channel messages with a specific name.
+`channelName` is the channel in your slack setup that annoucements should be sent to. __NOTE:__ the bot will be invited to the channel in order to send the message.
+`googleMapsApiKey` is retrieved from the google developers console. `clientId` and `clientSecret` is to authorize the app using the slack add app button.
+``
+``
 
 When this is complete you can setup your stack using `serverless deploy`.
 
-Make a note of the `endpoints` that is returned from the deployment command. This value is your endpoint in the Slack Slash command. Go ahead and copy/paste that url to Slack and save the integration.
+Make a note of the `endpoints` that is returned from the deployment command. This value is your endpoint in the Slack Slash command and place suggestions. Go ahead and copy/paste the /afterwork and /placessuggester url to Features -> Interactive components, then save the changes
 
 ### Notifications
 The serverless sets up a cron for scheduling daily invocations of the lambda in order to look for after work events today.
@@ -91,21 +94,21 @@ Participants:
 @another_user
 @third_user
 ```
-To join an upcoming after work run: `/afterwork join <day>`
+To join an upcoming after work run: `/afterwork join <day>` or click the button when someone created an event
 ```
 /afterwork join monday
 
 Great! You've joined the after work on monday!
 ```
 
-To leave an upcoming after work run: `/afterwork leave <day>`
+To leave an upcoming after work run: `/afterwork leave <day>` or `/afterwork list` and click the leave button
 ```
 /afterwork leave monday
 
 You are now removed from the after work!
 ```
 
-Have you created an after work and want to delete it run: `/afterwork delete <day>`
+Have you created an after work and want to delete it run: `/afterwork delete <day>` or type `/afterwork list` and click the delete button
 ```
 /afterwork delete monday
 
