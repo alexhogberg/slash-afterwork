@@ -2,7 +2,7 @@ anyconfig==0.9.4
 boto3==1.7.9
 botocore==1.10.9
 googlemaps==2.5.1
-pytest==3.5.1
+pytest==5.3.4
 slacker==0.9.65
 mock
 slackclient
