@@ -1,6 +1,6 @@
 anyconfig==0.9.4
 boto3==1.7.9
-botocore==1.10.9
+botocore==1.15.0
 googlemaps==2.5.1
 pytest==3.5.1
 slacker==0.9.65
