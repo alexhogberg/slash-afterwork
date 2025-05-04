@@ -1,12 +1,6 @@
-conf.yml
-packages
-node_modules
-.serverless
 *.pyc
-bin/
 .idea
 .pytest_cache
-.aws-sam
 .venv
 .env
 .vscode
