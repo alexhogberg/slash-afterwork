@@ -276,7 +276,7 @@ def print_event_created(author, date, place: EventPlace, time, id):
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Directions:*\n{place.gMapsPlace.google_maps_url}"
+                        "text": f"*Directions:*\n{place.directions_url()}"
                     }
                 ]
             },

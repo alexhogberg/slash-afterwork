@@ -31,6 +31,9 @@ class EventPlace:
 
     def url(self):
         return self.gMapsPlace.website_uri
+    
+    def directions_url(self):
+        return self.gMapsPlace.google_maps_uri
 
     def format_field(self, title, text):
         return {"title": title, "value": text, 'short': 1}
