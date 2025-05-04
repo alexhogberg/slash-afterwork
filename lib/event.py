@@ -196,8 +196,7 @@ class Event:
                 event_details = f"*{event['Location']}* on *{event['Date']}* at *{event['Time']}*"
                 self.say(
                     text=f"The event has been cancelled: {event_details}",
-                    channel=self.slack.get_channel_id(),
-                    username=os.environ['botName']
+                    channel=self.slack.get_channel_id()
                 )
                 self.send_epemeral_message(
                     f"*Gotcha!* Event deleted: {event_details}", author, channel_id)
@@ -244,8 +243,7 @@ class Event:
 
             try:
                 self.say(
-                    text=event,
-                    username=os.environ['botName']
+                    text=event
                 )
             except Exception as e:
                 self.logger.error(e)
