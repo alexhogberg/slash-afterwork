@@ -33,6 +33,8 @@ jobs:
         run: |
           source .venv/bin/activate
           pytest tests/
+        env:
+          GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
   deploy:
     name: Deploy app
     needs: test
