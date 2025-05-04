@@ -7,3 +7,4 @@ python-dotenv
 slack_bolt
 pymongo
 flask
+gunicorn==21.2.0

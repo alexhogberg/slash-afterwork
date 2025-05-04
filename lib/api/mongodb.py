@@ -20,26 +20,9 @@ class OauthMongoDAL:
         self.mongodb = MongoClient(db_connection_string)
         self.database = self.mongodb.events
 
-    def save_workspace(self, team_id, bot_access_token, access_token):
-        self.logger.info(f"Saving workspace for team {team_id}")
-        item = {
-            'TeamId': team_id,
-            'BotAccessToken': bot_access_token,
-            'AccessToken': access_token
-        }
-        try:
-            self.database.workspaces.update_one(
-                {'TeamId': team_id},
-                {'$set': item},
-                upsert=True
-            )
-        except Exception as e:
-            self.logger.error(f"Error saving workspace: {e}")
-            raise e
-
     def get_workspace(self, team_id):
         try:
-            return self.database.workspaces.find_one({'TeamId': team_id})
+            return self.database.slack_installations.find_one({'team_id': team_id})
         except Exception as e:
             self.logger.error(f"Error fetching workspace: {e}")
             return None

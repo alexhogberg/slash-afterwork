@@ -47,7 +47,7 @@ def set_bot_token(context, next, logger):
 
     workspace = oauth_dal.get_workspace(team_id)
     if workspace:
-        context["bot_token"] = workspace["BotAccessToken"]
+        context["bot_token"] = workspace["bot_token"]
         logger.info(f"Bot token set for team {team_id}")
     else:
         logger.error(f"No token found for team {team_id}")

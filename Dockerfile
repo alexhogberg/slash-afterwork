@@ -15,4 +15,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 EXPOSE 3000
 
 # Command to run the Bolt app
-CMD ["python", "bolt.py"]
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:3000", "bolt:flask_app"]
