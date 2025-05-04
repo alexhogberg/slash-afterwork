@@ -193,7 +193,7 @@ class Event:
 
             # Proceed to delete the event
             if self.event_dal.delete_event(id, author):
-                event_details = f"*{event['Location']}* on *{event['Date']}* at *{event['Time']}*"
+                event_details = f"*{event['Location']['name']}* on *{event['Date'].split("|")[1]}* at *{event['Time']}*"
                 self.say(
                     text=f"The event has been cancelled: {event_details}",
                     channel=self.slack.get_channel_id()
