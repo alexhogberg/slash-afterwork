@@ -4,8 +4,38 @@ on:
     branches:
       - master    # change to main if needed
 jobs:
+  test:
+    name: Test app
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      # Step 1: Checkout the code
+      - uses: actions/checkout@v4
+
+      # Step 2: Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # Step 4: Run tests
+      - name: Run Tests
+        run: |
+          source .venv/bin/activate
+          pytest tests/
   deploy:
     name: Deploy app
+    needs: test
     permissions:
       contents: read
       pull-requests: write

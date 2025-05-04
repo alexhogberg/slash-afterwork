@@ -8,9 +8,6 @@ from bson.objectid import ObjectId
 
 load_dotenv()
 db_connection_string = os.getenv('MONGO_DB_CONNECTION_STRING')
-if db_connection_string is None:
-    raise ValueError(
-        "MONGO_DB_CONNECTION_STRING is not set in the environment variables.")
 
 
 class OauthMongoDAL:
