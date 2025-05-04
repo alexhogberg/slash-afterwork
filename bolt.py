@@ -140,13 +140,26 @@ def handle_view_submission_events(ack, body, client, say, respond):
 @app.event("app_home_opened")
 def show_home_tab(ack, client, event, body):
     ack()
-    print(event)
-    print(event.get('view', {}).get('id'))
     if event.get('view', {}).get('id'):
         event_handler = Event(event.get('view', {}).get('team_id'), client)
         user_id = event.get('user')
         event_handler.update_events_view(user_id)
 
 
+# Initialize Flask app
+from flask import Flask, request
+flask_app = Flask(__name__)
+
+# SlackRequestHandler translates WSGI requests to Bolt's interface
+# and builds WSGI response from Bolt's response.
+from slack_bolt.adapter.flask import SlackRequestHandler
+handler = SlackRequestHandler(app)
+
+# Register routes to Flask app
+@flask_app.route("/slack/events", methods=["POST"])
+def slack_events():
+    # handler runs App's dispatch method
+    return handler.handle(request)
+
 if __name__ == '__main__':
-    app.start(port=int(os.environ.get("PORT", 3000)))
+    flask_app.run(port=int(os.environ.get("PORT", 3000)), host='0.0.0.0')

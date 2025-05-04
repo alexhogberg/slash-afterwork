@@ -6,3 +6,4 @@ slack_sdk
 python-dotenv
 slack_bolt
 pymongo
+flask
