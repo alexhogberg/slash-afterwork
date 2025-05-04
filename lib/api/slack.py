@@ -1,23 +1,27 @@
 import logging
 import os
 
-from slacker import Slacker
-from slackclient import SlackClient
+from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
+from dotenv import load_dotenv
 
-from lib.api.dynamodb import OauthDAL
+from lib.api.mongodb import OauthMongoDAL
+
+load_dotenv()
 
 
 class Slack:
     def __init__(self, team_id=None):
-        self.logger = logging.getLogger()
+        self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
-        self.oauth = OauthDAL()
+
+        self.oauth = OauthMongoDAL()
         if team_id is None:
-            self.apiKey = os.environ['apiKey']
+            self.api_key = os.getenv('SLACK_BOT_TOKEN')
         else:
-            self.apiKey = self.oauth.getTokenForTeam(team_id)
-        self.slack = Slacker(self.apiKey)
-        self.slack_client = SlackClient(self.apiKey)
+            self.api_key = os.getenv('SLACK_BOT_TOKEN')
+
+        self.client = WebClient(token=self.api_key)
 
     @staticmethod
     def private_slack_text(text):
@@ -26,37 +30,69 @@ class Slack:
         }
 
     def get_channel_id(self):
-        channel_list = self.slack.channels.list()
+        """
+        Fetch the channel ID for the channel name specified in the environment variable.
+        """
+        try:
+            response = self.client.conversations_list()
+            channels = response.get('channels', [])
 
-        channel_id = 0
+            for channel in channels:
+                if channel['name'] == os.getenv('SLACK_CHANNEL_NAME'):
+                    return channel['id']
 
-        for channel in channel_list.body['channels']:
-            if channel['name'] == os.environ['channelName']:
-                channel_id = channel['id']
-                break
-
-        return channel_id
+            self.logger.warning("Channel not found: %s",
+                                os.getenv('SLACK_CHANNEL_NAME'))
+            return None
+        except SlackApiError as e:
+            self.logger.error(
+                f"Error fetching channel list: {e.response['error']}")
+            raise
 
     def send_public_message(self, text, username, attachments=None):
-        self.slack.chat.post_message(
-            text=text,
-            attachments=attachments,
-            channel=self.get_channel_id(),
-            username=username
-        )
+        """
+        Send a public message to the specified Slack channel.
+        """
+        channel_id = self.get_channel_id()
+        if not channel_id:
+            self.logger.error("Unable to send message: Channel ID not found.")
+            return
+
+        try:
+            self.client.chat_postMessage(
+                channel=channel_id,
+                text=text,
+                username=username,
+                attachments=attachments
+            )
+        except SlackApiError as e:
+            self.logger.error(f"Error sending message: {e.response['error']}")
+            raise
 
     def update_chat_message(self, channel, ts, text):
-        self.slack.chat.update(
-            channel=channel,
-            ts=ts,
-            text=text
-        )
+        """
+        Update an existing chat message in a Slack channel.
+        """
+        try:
+            self.client.chat_update(
+                channel=channel,
+                ts=ts,
+                text=text
+            )
+        except SlackApiError as e:
+            self.logger.error(f"Error updating message: {e.response['error']}")
+            raise
 
     def open_dialog(self, trigger_id, dialog):
-        open_dialog = self.slack_client.api_call(
-            "dialog.open",
-            trigger_id=trigger_id,
-            dialog=dialog
-        )
-
-        return open_dialog
+        """
+        Open a Slack dialog using the provided trigger ID and dialog payload.
+        """
+        try:
+            response = self.client.dialog_open(
+                trigger_id=trigger_id,
+                dialog=dialog
+            )
+            return response
+        except SlackApiError as e:
+            self.logger.error(f"Error opening dialog: {e.response['error']}")
+            raise

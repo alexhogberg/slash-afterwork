@@ -6,3 +6,7 @@ node_modules
 bin/
 .idea
 .pytest_cache
+.aws-sam
+.venv
+.env
+.vscode

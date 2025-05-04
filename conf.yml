@@ -1,5 +1,0 @@
-apiKey: <SLACK_SLASH_COMMAND_API_KEY>
-authKey: <SLACK_BOT_API_KEY>
-botName: <BOT_NAME>
-channelName: <CHANNEL_NAME>
-tableName: <DYNAMODB_TABLE_NAME>

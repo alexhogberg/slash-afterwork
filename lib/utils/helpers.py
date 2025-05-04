@@ -1,10 +1,16 @@
 # coding=utf-8
 import calendar
 import time
+import os
 from datetime import datetime, timedelta
 import parsedatetime as pdt
 
 from lib.api.google_places import GooglePlaces
+from lib.models.event_place import EventPlace
+
+
+def validate_token(token):
+    return token == os.environ['SLACK_AUTH_KEY']
 
 
 def get_user_name(user):
@@ -41,7 +47,7 @@ def get_day_number(weekday_name):
 
     try:
         # User should be able to write tuesday or tue, both should work
-        if len(weekday) is 3:
+        if len(weekday) == 3:
             operator = '%a'
         else:
             operator = '%A'
@@ -58,103 +64,164 @@ def get_day_number(weekday_name):
 
 def get_date(date):
     natural_date = pdt.Calendar().parseDT(date)[0]
-    print(natural_date)
     if datetime.today() >= natural_date:
-        print('is before, wont allow it')
         return None
 
     return natural_date.strftime('%Y-%m-%d')
 
 
-def print_afterwork_list(results, user):
-    places = GooglePlaces()
+def print_event_list(results, user):
     events = {
-        'text': 'Upcoming after work events',
-        'attachments': []
+        'text': 'Upcoming events',
+        'blocks': []
     }
 
-    for item in results['Items']:
-        place = places.get_place_information(item['PlaceId'])
+    for item in results:
+        place = item['Location']
         aw_date = item['Date'].split('|')[1]
+        event_id = str(item['_id'])
         weekday = datetime.strptime(aw_date, "%Y-%m-%d").weekday()
-        attachment = {
-            'title': '{place} on {weekday} at {time}'.format(
-                place=place.name(),
-                weekday=calendar.day_name[weekday],
-                time=item['Time']
-            ),
-            'callback_id': 'handle_afterwork',
-            'fields': [
-                {
-                    'title': 'Rating',
-                    'value': place.rating(),
-                    'short': 1
-                },
-                {
-                    'title': 'Address',
-                    'value': place.address(),
-                    'short': 1
-                }
-            ],
-            'color': place.format_open()['color'],
-            'author_name': 'Created by: ' + item['Author'],
-            'text': '',
-            'actions': [
-                {
-                    'name': 'afterwork',
-                    'text': 'Join afterwork',
-                    'type': 'button',
-                    'style': 'primary',
-                    'value': 'join_afterwork|' + aw_date
-                },
-                {
-                    'name': 'afterwork',
-                    'text': 'Leave afterwork',
-                    'type': 'button',
-                    'style': 'danger',
-                    'value': 'leave_afterwork|' + aw_date
-                }
-            ]
-        }
 
-        if user == item['Author']:
-            attachment['actions'].append({
-                'name': 'afterwork',
-                'text': 'Delete afterwork',
-                'type': 'button',
-                'style': 'danger',
-                'value': 'delete_afterwork|' + aw_date
+        # Header block for the event
+        events['blocks'].append({
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"*{place['name']}* on *{calendar.day_name[weekday]}* at *{item['Time']}*\nCreated by: *<@{item['Author']}>*"
+            },
+        })
+
+        # Fields block for additional details
+        events['blocks'].append({
+            "type": "section",
+            "fields": [
+                {
+                    "type": "mrkdwn",
+                    "text": f"*Rating:*\n{place['rating']}"
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": f"*Address:*\n{place['address']}"
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": f"*Directions:*\n<{place['google_maps_url']}|Google Maps>"
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": f"*Place types:*\n{', '.join(place['types'])}"
+                },
+            ]
+        })
+
+        # Participants block
+        if 'Participants' in item and len(item['Participants']) > 0:
+            participants_text = "\n".join(
+                [f"<@{participant}>" for participant in item['Participants']])
+            events['blocks'].append({
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Participants:*\n{participants_text}"
+                }
+            })
+        else:
+            events['blocks'].append({
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "No one is participating in this event, *yet...*"
+                }
             })
 
-        if 'Participants' in item and len(item['Participants']) > 0:
-            attachment['text'] += "\n *Participants:* \n"
-            for participant in item['Participants']:
-                attachment['text'] += participant + "\n"
-        else:
-            attachment['text'] += "\nNo one is participating in this after work, *yet...*"
-        events['attachments'].append(attachment)
+        # Actions block for buttons
+        actions = []
+        if 'Participants' in item and user not in item['Participants']:
+            actions.append({
+                "type": "button",
+                "action_id": "join_event",
+                "text": {
+                    "type": "plain_text",
+                    "text": "Join event",
+                    "emoji": True
+                },
+                "style": "primary",
+                "value": event_id
+            })
+
+        if 'Participants' in item and user in item['Participants']:
+            actions.append({
+                "type": "button",
+                "action_id": "leave_event",
+                "text": {
+                    "type": "plain_text",
+                    "text": "Leave event",
+                    "emoji": True
+                },
+                "value": event_id
+            })
+
+        if user == item['Author']:
+            actions.append({
+                "type": "button",
+                "action_id": "delete_event",
+                "text": {
+                    "type": "plain_text",
+                    "text": "Delete event",
+                    "emoji": True
+                },
+                "style": "danger",
+                "value": event_id
+            })
+
+        events['blocks'].append({
+            "type": "actions",
+            "elements": actions
+        })
+
+        # Divider block between events
+        events['blocks'].append({
+            "type": "divider"
+        })
+
     return events
 
-def print_afterwork_create():
-    return {
-        'text': 'There is no upcoming afterwork event planned',
-        'attachments': [{
-            'callback_id': 'handle_afterwork',
-            'actions': [{
-                'name': 'afterwork',
-                'text': 'Create afterwork',
-                'type': 'button',
-                'style': 'primary',
-                'value': 'create_afterwork|'
-            }]
-        }]
 
+def print_event_create():
+    return {
+        'text': 'There is no upcoming event planned',
+        'blocks': [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "There is no upcoming event planned. Would you like to create one?"
+                }
+            },
+            {
+                "type": "actions",
+                "block_id": "create_event_block",
+                "elements": [
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "Create event",
+                            "emoji": True
+                        },
+                        "style": "primary",
+                        "value": "create_event|",
+                        "action_id": "create_event_action"
+                    }
+                ]
+            }
+        ]
     }
 
 
-def print_afterwork_today(results):
+def print_event_today(results):
     if 'Participants' in results['Item'] and len(results['Item']['Participants']) > 0:
-        event = "*Reminder * Today there's an after work planned! \n"
+        event = "*Reminder * Today there's an event planned! \n"
 
         event += "*" + parse_date_to_weekday(results['Item']['Date']) + "*"
 
@@ -171,7 +238,7 @@ def print_afterwork_today(results):
 
         event += "\n *Don't be late!*"
     else:
-        event = "Hey guys, there was an after work planned for today, but no one wants to go :("
+        event = "Hey guys, there was an event planned for today, but no one wants to go :("
 
     return event
 
@@ -185,71 +252,168 @@ def print_possible_commands():
                 \nlist \ncreate <day> <time> <place>\njoin <day>\nleave <day>\ndelete <day>"""
 
 
-def print_afterwork_created(author, date, place, time):
+def print_event_created(author, date, place: EventPlace, time, id):
     return {
-        'text': 'A new afterwork was created!',
-        'attachments': [
+        'text': 'A new event was created!',
+        'blocks': [
             {
-                'author_name': 'Started by: ' + author,
-                'color': '#36a64f',
-                'title': place.name(),
-                'title_link': place.url(),
-                'callback_id': 'handle_afterwork',
-                'text': parse_date_to_weekday(date) + ' ' + date + ' at ' + time,
-                'fields': [
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*A new event was created!*\n\n*{place.name()}*\n{parse_date_to_weekday(date)} {date} at {time}\nStarted by: <@{author}>"
+                }
+            },
+            {
+                "type": "section",
+                "fields": [
                     {
-                        'title': 'Address',
-                        'value': place.address(),
-                        'short': 1
+                        "type": "mrkdwn",
+                        "text": f"*Address:*\n{place.address()}"
                     },
                     {
-                        'title': 'Rating',
-                        'value': place.rating(),
-                        'short': 1
+                        "type": "mrkdwn",
+                        "text": f"*Rating:*\n{place.rating()}"
                     }
-                ],
-                'actions': [
+                ]
+            },
+            {
+                "type": "actions",
+                "elements": [
                     {
-                        'name': 'afterwork',
-                        'text': 'Join this afterwork',
-                        'type': 'button',
-                        'style': 'primary',
-                        'value': 'join_afterwork|' + date
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "Join this event",
+                            "emoji": True
+                        },
+                        "style": "primary",
+                        "value": id,
+                        "action_id": "join_event"
                     }
-                ],
-                "footer": "Brought to you by Afterworker",
-                "footer_icon": "https://platform.slack-edge.com/img/default_application_icon.png"
+                ]
+            },
+            {
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "mrkdwn",
+                        "text": "Brought to you by *Eventer*"
+                    },
+                    {
+                        "type": "image",
+                        "image_url": "https://platform.slack-edge.com/img/default_application_icon.png",
+                        "alt_text": "Eventer logo"
+                    }
+                ]
             }
         ]
     }
 
-def build_create_dialog():
+
+def build_create_dialog(value=None):
+    place_picker = {
+        "type": "input",
+        "block_id": "suggest_place",
+        "element": {
+            "type": "external_select",
+            "action_id": "suggest_place",
+            "placeholder": {
+                "type": "plain_text",
+                "text": "Start typing to search for a place",
+            },
+            "min_query_length": 3
+        },
+        "label": {
+            "type": "plain_text",
+            "text": "Pick a place",
+            "emoji": True
+        }
+    }
+
     dialog = {
-        'title': 'Create an afterwork',
-        'submit_label': 'Create',
-        'callback_id': "create_afterwork_dialog|",
-        'elements': [
+        'type': 'modal',
+        'title': {'type': 'plain_text', 'text': 'Create an event'},
+        'submit': {'type': 'plain_text', 'text': 'Create'},
+        'callback_id': "create_event_dialog|",
+        "blocks": [
+                {
+                    "type": "input",
+                    "block_id": "event_day",
+                    "element": {
+                        "type": "datepicker",
+                        "action_id": "event_day",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select a date",
+                            "emoji": True
+                        }
+                    },
+                    "label": {
+                        "type": "plain_text",
+                        "text": "Which day?",
+                        "emoji": True
+                    }
+                },
             {
-                'label': 'Where?',
-                'type': 'select',
-                'data_source': 'external',
-                'min_query_length': 3,
-                'name': 'afterwork_place',
-                'placeholder': 'Select a location and we will try to map it'
-            },
-            {
-                'label': 'Which day?',
-                'type': 'text',
-                'name': 'afterwork_day',
-                'placeholder': 'Select a day, just like you would say it'
-            },
-            {
-                'label': 'What time?',
-                'type': 'text',
-                'name': 'afterwork_time',
-                'placeholder': 'Pick a time, any time!'
-            }
+                    "type": "input",
+                    "block_id": "event_time",
+                    "element": {
+                        "type": "timepicker",
+                        "action_id": "event_time",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select a time",
+                            "emoji": True
+                        }
+                    },
+                    "label": {
+                        "type": "plain_text",
+                        "text": "What time?",
+                        "emoji": True
+                    }
+                }
         ]
     }
+
+    if value is not None:
+        # Get value from places api
+        places = GooglePlaces()
+        place = places.get_place_information(value)
+        text_block = {
+            "type": "section",
+            "text": {
+                "type": "plain_text",
+                "text": place.display_name.text
+            },
+            "block_id": f"suggest_place|{place.id}",
+        }
+        dialog['blocks'].insert(2, text_block)
+    else:
+        dialog['blocks'].insert(2, place_picker)
 
     return dialog
+
+
+def extract_values(state):
+    """
+    Extracts the 'value' field from the given state object.
+
+    Args:
+        state (dict): The state object containing nested fields.
+
+    Returns:
+        dict: A dictionary with extracted values.
+    """
+    extracted_values = {}
+    for block_id, block_data in state.get("values", {}).items():
+        for action_id, action_data in block_data.items():
+            if action_data["type"] == "plain_text_input":
+                extracted_values[action_id] = action_data.get("value")
+            elif action_data["type"] == "external_select":
+                extracted_values[action_id] = action_data.get(
+                    "selected_option", {}).get("value")
+            elif action_data["type"] == "datepicker":
+                extracted_values[action_id] = action_data.get("selected_date")
+            elif action_data["type"] == "timepicker":
+                extracted_values[action_id] = action_data.get("selected_time")
+    return extracted_values

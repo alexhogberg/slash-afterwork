@@ -1,0 +1,8 @@
+{
+    "body": "{\"text\": \"create friday 18:00 The Pub\", \"token\": \"localAuthKey\", \"team_id\": \"T12345\"}",
+    "httpMethod": "POST",
+    "path": "/event",
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  }

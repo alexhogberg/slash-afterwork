@@ -1,0 +1,74 @@
+{
+    "display_information": {
+        "name": "Eventer",
+        "description": "This app helps teams organize events, suggest places, and track participation—all within Slack.",
+        "background_color": "#544046",
+        "long_description": "With this app, you can easily create, manage, and join events without leaving Slack. Whether you're planning team outings, brainstorming sessions, or casual meetups, this app simplifies the process.\r\n\r\nCreate Events: Quickly set up events with details like date, time, and location.\r\nSuggest Places: Use Google Places integration to find and suggest venues.\r\nTrack Participation: Allow team members to join or leave events with a single click.\r\nApp Home: View and manage all your events in one place.\r\n\r\nPerfect for teams looking to stay organized and connected!"
+    },
+    "features": {
+        "app_home": {
+            "home_tab_enabled": true,
+            "messages_tab_enabled": false,
+            "messages_tab_read_only_enabled": false
+        },
+        "bot_user": {
+            "display_name": "PlaceFinder",
+            "always_online": false
+        },
+        "slash_commands": [
+            {
+                "command": "/event",
+                "url": "https://<url>/slack/events",
+                "description": "Manage any type of event!",
+                "usage_hint": "list, create etc...",
+                "should_escape": false
+            }
+        ]
+    },
+    "oauth_config": {
+        "redirect_urls": [
+            "https://localhost:3000/slack/oauth_redirect",
+            "https://<url>/slack/oauth_redirect"
+        ],
+        "scopes": {
+            "user": [
+                "channels:write.invites"
+            ],
+            "bot": [
+                "channels:history",
+                "channels:join",
+                "chat:write",
+                "chat:write.customize",
+                "chat:write.public",
+                "commands",
+                "groups:history",
+                "im:history",
+                "im:read",
+                "im:write",
+                "im:write.topic",
+                "incoming-webhook",
+                "mpim:history",
+                "mpim:read",
+                "mpim:write",
+                "mpim:write.topic",
+                "channels:read"
+            ]
+        }
+    },
+    "settings": {
+        "event_subscriptions": {
+            "request_url": "https://<url>/slack/events",
+            "bot_events": [
+                "app_home_opened"
+            ]
+        },
+        "interactivity": {
+            "is_enabled": true,
+            "request_url": "https://<url>/slack/events",
+            "message_menu_options_url": "https://<url>/slack/events"
+        },
+        "org_deploy_enabled": false,
+        "socket_mode_enabled": false,
+        "token_rotation_enabled": false
+    }
+}

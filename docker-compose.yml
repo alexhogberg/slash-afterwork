@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"  # Expose the Bolt app on port 3000
+    env_file:
+      - .env  # Load environment variables from the .env file
+    command: ["python", "bolt.py"]

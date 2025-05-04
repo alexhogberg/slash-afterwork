@@ -1,0 +1,10 @@
+{
+    "queryStringParameters": {
+      "code": "test_code"
+    },
+    "httpMethod": "GET",
+    "path": "/event",
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  }

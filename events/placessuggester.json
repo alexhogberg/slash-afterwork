@@ -1,0 +1,8 @@
+{
+    "body": "{\"payload\": {\"token\": \"localAuthKey\", \"value\": \"bars near me\"}}",
+    "httpMethod": "POST",
+    "path": "/placessuggester",
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  }
