@@ -7,15 +7,17 @@ from datetime import datetime
 import pymongo
 from lib.api.google_places import GooglePlaces
 from lib.api.mongodb import EventMongoDAL
+from lib.models.slack_message import SlackMessage
 from lib.utils.helpers import extract_values, get_date, print_event_list, get_valid_commands, \
     print_possible_commands, \
     print_event_created, print_event_today, build_create_dialog, print_event_create
 from lib.models.event_place import EventPlace
+from lib.models.event import Event
 from lib.api.slack import Slack
 
 
-class Event:
-    def __init__(self, team_id, bolt_client=None, say_func=None, respond_func=None, current_view=None):
+class EventHandler:
+    def __init__(self, team_id, bolt_client=None, say_func=None, respond_func=None, current_view=None, event_dal=None):
         self.logger = logging.getLogger()
         self.logger.setLevel(logging.INFO)
 
@@ -26,7 +28,8 @@ class Event:
         self.respond = respond_func
         if team_id is None:
             self.logger.error("No team id specified")
-        self.event_dal = EventMongoDAL(team_id)
+        self.team_id = team_id
+        self.event_dal = event_dal or EventMongoDAL(team_id) if event_dal is None else event_dal
         self.google_places = GooglePlaces()
 
     def parse_command(self, command, event):
@@ -85,14 +88,6 @@ class Event:
                 view=update_view
             )
 
-        # if 'message_ts' in payload.get('container') and 'channel_id' in payload.get('container') and not 'is_ephemeral' in payload.get('container'):
-        #     self.logger.info("Updating message with timestamp: {ts}".format(ts=payload.get('container').get('message_ts')))
-        #     self.bolt_client.chat_update(
-        #         channel=payload.get('container').get('channel_id'),
-        #         ts=payload.get('container').get('message_ts'),
-        #         text=json.dumps(update_view)
-        #     )
-
     def send_epemeral_message(self, text, user_id, channel_id):
         """
         Sends an ephemeral message to a user in slack
@@ -121,27 +116,25 @@ class Event:
                 view=event_view
             )
 
-    def list_event(self, command, event):
+    def list_event(self, event):
         """
         Gets a list of events
-        :param command: Not used
-        :param event: Not used
+        :param event: Who is requesting the event
         :return: A slack message containing the upcoming events
         """
         results = self.event_dal.list_events()
-        events = print_event_list(results, event.get('user_id'))
+        events: SlackMessage = print_event_list(results, event.get('user_id'))
         self.logger.info("Found events: {events}".format(events=events))
         if results and len(results) > 0:
             self.respond(events)
         else:
             self.respond(print_event_create())
 
-    def create_event(self, command, event):
+    def create_event(self, event):
         """
-        Creates a new event.
-        :param command: parse this to get day, time and place
-        :param event: the full lambda event
-        :return:
+        Opens the create event dialog in slack
+        :param event: The event from the slack command
+        :return: None
         """
 
         trigger_id = event.get('trigger_id')
@@ -150,6 +143,13 @@ class Event:
         return self.respond('Please follow the instructions in the dialog!')
 
     def join_event(self, author, id, channel_id):
+        """
+        Joins an event from the database
+        :param author: The author of the event
+        :param id: The id of the event to be joined
+        :param channel_id: The channel id to send the message to
+        :return: None
+        """
         if id is not None:
             if self.event_dal.join_event(id, author):
                 self.send_epemeral_message(
@@ -163,6 +163,13 @@ class Event:
                 return None, err_msg
 
     def leave_event(self, id, author, channel_id):
+        """
+        Leaves an event from the database
+        :param id: The id of the event to be left
+        :param author: The author of the event
+        :param channel_id: The channel id to send the message to
+        :return: None
+        """
         if id is not None:
             if self.event_dal.leave_event(id, author):
                 self.send_epemeral_message(
@@ -178,6 +185,13 @@ class Event:
         return "Couldn't find any event on that day."
 
     def delete_event(self, id, author, channel_id):
+        """
+        Deletes an event from the database
+        :param id: The id of the event to be deleted
+        :param author: The author of the event
+        :param channel_id: The channel id to send the message to
+        :return: None
+        """
         if id is not None:
             # Fetch the event details before deleting
             event = self.event_dal.get_event(id)
@@ -208,7 +222,12 @@ class Event:
 
         return "Couldn't find any event on that day."
 
-    def suggest_event(self, command, event):
+    def suggest_event(self, command):
+        """
+        Suggests a place to hold an event
+        :param command: The command from the slack event
+        :return: A slack message containing the suggestions
+        """
         area = " ".join(command[1:])
 
         if area is None or area == "":
@@ -248,37 +267,40 @@ class Event:
             except Exception as e:
                 self.logger.error(e)
 
-    def create_event_from_event(self, date, place_id, time, author, channel_id):
+    def create_event_from_input(self, date, place_id, time, author, channel_id, description):
+        """
+        Creates an event from the input given in the slack dialog
+        :param date: The date of the event
+        :param place_id: The place id of the event
+        :param time: The time of the event
+        :param author: The author of the event
+        :param channel_id: The channel id to send the message to
+        :param description: The description of the event
+        :return: None
+        """
         place = self.google_places.get_place_information(place_id)
+        event = Event(
+            _id=None,
+            team_id=self.team_id,
+            description=description,
+            date=date,
+            time=time,
+            location=self.google_places.format_place(place),
+            author=author
+        )
         try:
-            id = self.event_dal.insert_event(
-                date=date,
-                place=self.google_places.format_place(place),
-                place_id=place_id,
-                event_time=time,
-                author=author,
-                channel_id=channel_id
-            )
-
-            self.logger.info('Created a new event from suggestion')
-            message = print_event_created(
-                author, get_date(date), EventPlace(place), time, id)
+            id = self.event_dal.insert_event(event)
+            event._id = id
+            self.logger.info('Created a new event')
+            
+            message = print_event_created(event)
             self.say(
-                text=message['text'],
-                blocks=message['blocks'],
+                text=message.text,
+                blocks=message.blocks,
                 channel=channel_id
             )
 
             return {}
-        except pymongo.errors.DuplicateKeyError:
-            self.respond({
-                'errors': [
-                    {
-                        'name': 'event_day',
-                        'error': 'Sorry this day seems occupied'
-                    }
-                ]
-            })
         except Exception as e:
             self.logger.error(e)
             self.logger.error('Something went horribly wrong')
@@ -300,7 +322,6 @@ class Event:
         time = extracted['event_time']
 
         channel_id = self.slack.get_channel_id()
-        print(f"Channel ID: {channel_id}")
 
         if payload.get('view').get('callback_id') is not None:
             split_callback = payload.get('view').get('callback_id').split('|')
@@ -309,7 +330,7 @@ class Event:
                 if split_callback[0] == 'create_event_dialog':
                     place_id = extracted.get('suggest_place')
 
-            return self.create_event_from_event(
+            return self.create_event_from_input(
                 date=date,
                 place_id=place_id,
                 time=time,

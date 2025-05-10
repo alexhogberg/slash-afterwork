@@ -16,7 +16,7 @@ class GooglePlaces:
             client_options={"api_key": os.environ['GOOGLE_PLACES_API_KEY']},
         )
 
-    def get_suggestions(self, area):
+    def get_suggestions(self, area) -> list[place_types.Place]:
         suggestions = places_v1.SearchTextRequest(
             text_query=area,
             open_now=True
@@ -28,14 +28,14 @@ class GooglePlaces:
             return response.places
         return []
 
-    def get_place_information(self, place_id):
+    def get_place_information(self, place_id) -> place_types.Place:
         place = places_v1.GetPlaceRequest(
             name=f"places/{place_id}",
         )
         fieldMask = "*"
         return self.gMaps.get_place(request=place, metadata=[("x-goog-fieldmask", fieldMask)])
 
-    def get_place_suggestions(self, place_name):
+    def get_place_suggestions(self, place_name) -> list[dict]:
         self.logger.info(place_name)
         suggestions = []
         try:

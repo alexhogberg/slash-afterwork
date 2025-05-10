@@ -6,22 +6,24 @@ from datetime import datetime, timedelta
 import parsedatetime as pdt
 
 from lib.api.google_places import GooglePlaces
+from lib.models.event import Event
 from lib.models.event_place import EventPlace
+from lib.models.slack_message import SlackMessage
 
 
-def validate_token(token):
+def validate_token(token) -> bool:
     return token == os.environ['SLACK_AUTH_KEY']
 
 
-def get_user_name(user):
+def get_user_name(user) -> str:
     return "<@" + user['user_id'] + "|" + user['user_name'] + ">"
 
 
-def get_user_name_from_event(user):
+def get_user_name_from_event(user) -> str:
     return "<@" + user['id'] + "|" + user['name'] + ">"
 
 
-def is_day_formatted_as_date(day):
+def is_day_formatted_as_date(day) -> bool:
     try:
         datetime.strptime(day, '%Y-%m-%d')
         return True
@@ -31,18 +33,18 @@ def is_day_formatted_as_date(day):
         return False
 
 
-def get_next_weekday_as_date(weekday_number):
+def get_next_weekday_as_date(weekday_number) -> str:
     start = datetime.strptime(datetime.now().strftime("%Y-%m-%d"), '%Y-%m-%d')
     day = timedelta((7 + weekday_number - start.weekday()) % 7)
 
     return (start + day).strftime("%Y-%m-%d")
 
 
-def parse_date_to_weekday(date):
+def parse_date_to_weekday(date) -> str:
     return calendar.day_name[datetime.strptime(date, "%Y-%m-%d").weekday()]
 
 
-def get_day_number(weekday_name):
+def get_day_number(weekday_name) -> int:
     weekday = weekday_name.lower().capitalize()
 
     try:
@@ -62,7 +64,7 @@ def get_day_number(weekday_name):
     return None
 
 
-def get_date(date):
+def get_date(date) -> str:
     natural_date = pdt.Calendar().parseDT(date)[0]
     if datetime.today() >= natural_date:
         return None
@@ -70,55 +72,54 @@ def get_date(date):
     return natural_date.strftime('%Y-%m-%d')
 
 
-def print_event_list(results, user):
-    events = {
-        'text': 'Upcoming events',
-        'blocks': []
-    }
+def print_event_list(events: list[Event], user) -> SlackMessage:
+    event_list = SlackMessage(
+        text='Upcoming events',
+        blocks=[]
+    )
 
-    for item in results:
-        place = item['Location']
-        aw_date = item['Date'].split('|')[1]
-        event_id = str(item['_id'])
-        weekday = datetime.strptime(aw_date, "%Y-%m-%d").weekday()
+    for event in events:
+        place = event.location
+        event_id = str(event._id)
+        weekday = datetime.strptime(event.date, "%Y-%m-%d").weekday()
 
         # Header block for the event
-        events['blocks'].append({
+        event_list.blocks.append({
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"*{place['name']}* on *{calendar.day_name[weekday]}* at *{item['Time']}*\nCreated by: *<@{item['Author']}>*"
+                "text": f"*{place.name()}* on *{calendar.day_name[weekday]}* at *{event.time}*\nCreated by: *<@{event.author}>*"
             },
         })
 
         # Fields block for additional details
-        events['blocks'].append({
+        event_list.blocks.append({
             "type": "section",
             "fields": [
                 {
                     "type": "mrkdwn",
-                    "text": f"*Rating:*\n{place['rating']}"
+                    "text": f"*Rating:*\n{place.rating}"
                 },
                 {
                     "type": "mrkdwn",
-                    "text": f"*Address:*\n{place['address']}"
+                    "text": f"*Address:*\n{place.address}"
                 },
                 {
                     "type": "mrkdwn",
-                    "text": f"*Directions:*\n<{place['google_maps_url']}|Google Maps>"
+                    "text": f"*Directions:*\n<{place.gMapsPlace.google_maps_uri}|Google Maps>"
                 },
                 {
                     "type": "mrkdwn",
-                    "text": f"*Place types:*\n{', '.join(place['types'])}"
+                    "text": f"*Place types:*\n{', '.join(place.gMapsPlace.types)}"
                 },
             ]
         })
 
         # Participants block
-        if 'Participants' in item and len(item['Participants']) > 0:
+        if event.participants:
             participants_text = "\n".join(
-                [f"<@{participant}>" for participant in item['Participants']])
-            events['blocks'].append({
+                [f"<@{participant}>" for participant in event.participants])
+            event_list.blocks.append({
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
@@ -126,7 +127,7 @@ def print_event_list(results, user):
                 }
             })
         else:
-            events['blocks'].append({
+            event_list.blocks.append({
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
@@ -136,7 +137,7 @@ def print_event_list(results, user):
 
         # Actions block for buttons
         actions = []
-        if 'Participants' in item and user not in item['Participants']:
+        if event.participants and user not in event.participants:
             actions.append({
                 "type": "button",
                 "action_id": "join_event",
@@ -149,7 +150,7 @@ def print_event_list(results, user):
                 "value": event_id
             })
 
-        if 'Participants' in item and user in item['Participants']:
+        if event.participants and user in event.participants:
             actions.append({
                 "type": "button",
                 "action_id": "leave_event",
@@ -161,7 +162,7 @@ def print_event_list(results, user):
                 "value": event_id
             })
 
-        if user == item['Author']:
+        if user == event.author:
             actions.append({
                 "type": "button",
                 "action_id": "delete_event",
@@ -174,23 +175,23 @@ def print_event_list(results, user):
                 "value": event_id
             })
 
-        events['blocks'].append({
+        event_list.blocks.append({
             "type": "actions",
             "elements": actions
         })
 
         # Divider block between events
-        events['blocks'].append({
+        event_list.blocks.append({
             "type": "divider"
         })
 
-    return events
+    return event_list
 
 
-def print_event_create():
-    return {
-        'text': 'There is no upcoming event planned',
-        'blocks': [
+def print_event_create() -> SlackMessage:
+    return SlackMessage(
+        text='There is no upcoming event planned',
+        blocks=[
             {
                 "type": "section",
                 "text": {
@@ -210,57 +211,65 @@ def print_event_create():
                             "emoji": True
                         },
                         "style": "primary",
-                        "value": "create_event|",
+                        "value": "",
                         "action_id": "create_event_action"
                     }
                 ]
             }
-        ]
-    }
+        ])
 
 
-def print_event_today(results):
-    if 'Participants' in results['Item'] and len(results['Item']['Participants']) > 0:
-        event = "*Reminder * Today there's an event planned! \n"
+def print_event_today(event: Event) -> str:
+    if event is None:
+        return None    
+    if len(event.participants) > 0:
+        return_message = "*Reminder * Today there's an event planned! \n"
 
-        event += "*" + parse_date_to_weekday(results['Item']['Date']) + "*"
+        return_message += "*" + parse_date_to_weekday(event.date) + "*"
 
-        if 'Time' in results['Item']:
-            event += " at *" + results['Item']['Time'] + "*"
+        if event.time:
+            return_message += " at *" + event.time + "*"
 
-        if 'Location' in results['Item']:
-            event += " by *" + results['Item']['Location'] + "*"
+        if event.location:
+            return_message += " by *" + event.location.name() + "*"
 
-        event += " started by *" + results['Item']['Author'] + "*"
-        event += "\n *Participants:* \n"
-        for participant in results['Item']['Participants']:
-            event += participant + "\n"
+        return_message += " started by *@" + event.author + "*"
+        return_message += "\n *Participants:* \n"
+        for participant in event.participants:
+            return_message += "@" + participant + "\n"
 
-        event += "\n *Don't be late!*"
+        return_message += "\n *Don't be late!*"
     else:
-        event = "Hey guys, there was an event planned for today, but no one wants to go :("
+        return_message = "Hey guys, there was an event planned for today, but no one wants to go :("
 
-    return event
+    return return_message
 
 
-def get_valid_commands():
+def get_valid_commands() -> list:
     return ['list', 'create', 'join', 'leave', 'delete', 'suggest']
 
 
-def print_possible_commands():
+def print_possible_commands() -> str:
     return """Possible commands are:
                 \nlist \ncreate <day> <time> <place>\njoin <day>\nleave <day>\ndelete <day>"""
 
 
-def print_event_created(author, date, place: EventPlace, time, id):
-    return {
-        'text': 'A new event was created!',
-        'blocks': [
+def print_event_created(event: Event) -> SlackMessage:
+    return SlackMessage(
+        text='A new event was created!',
+        blocks=[
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"*A new event was created!*\n\n*{place.name()}*\n{parse_date_to_weekday(date)} {date} at {time}\nStarted by: <@{author}>"
+                    "text": f"*A new event was created!*\n\n*{event.location.name()}*\n{parse_date_to_weekday(event.date)} {event.date} at {event.time}\nStarted by: <@{event.author}>"
+                }
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": event.description if event.description else "No description provided"
                 }
             },
             {
@@ -268,15 +277,15 @@ def print_event_created(author, date, place: EventPlace, time, id):
                 "fields": [
                     {
                         "type": "mrkdwn",
-                        "text": f"*Address:*\n{place.address()}"
+                        "text": f"*Address:*\n{event.location.address()}"
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Rating:*\n{place.rating()}"
+                        "text": f"*Rating:*\n{event.location.rating()}"
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Directions:*\n{place.directions_url()}"
+                        "text": f"*Directions:*\n{event.location.directions_url()}"
                     }
                 ]
             },
@@ -311,7 +320,7 @@ def print_event_created(author, date, place: EventPlace, time, id):
                 ]
             }
         ]
-    }
+    )
 
 
 def build_create_dialog(value=None):
@@ -375,7 +384,7 @@ def build_create_dialog(value=None):
                         "text": "What time?",
                         "emoji": True
                     }
-                }
+            }
         ]
     }
 
@@ -398,7 +407,7 @@ def build_create_dialog(value=None):
     return dialog
 
 
-def extract_values(state):
+def extract_values(state) -> dict:
     """
     Extracts the 'value' field from the given state object.
 

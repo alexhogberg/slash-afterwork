@@ -5,7 +5,7 @@ from google.maps.places_v1.types import Place
 
 
 class EventPlace:
-    def __init__(self, place):
+    def __init__(self, place: Place):
         self.gMapsPlace: Place = place
 
     def name(self):

@@ -6,7 +6,7 @@ from slack_sdk.oauth.state_store import FileOAuthStateStore
 from slack_bolt.oauth.oauth_settings import OAuthSettings
 from lib.bolt.MongoDBBoltOAuthStateStore import MongoDBOAuthStateStore
 from lib.utils.helpers import build_create_dialog, validate_token
-from lib.event import Event
+from lib.event_handler import EventHandler
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from slack_bolt import App
 from dotenv import load_dotenv
@@ -55,7 +55,6 @@ def set_bot_token(context, next, logger):
 
 
 def handle_command(command, respond, say, client):
-    print(command)
     token = command.get('token', None)
     type = command.get('type', None)
     ssl_check = command.get('ssl_check', None)
@@ -66,7 +65,7 @@ def handle_command(command, respond, say, client):
         return respond("Unauthorized")
 
     if type is not None and type == 'block_actions':
-        event_handler = Event(command.get('user').get(
+        event_handler = EventHandler(command.get('user').get(
             'team_id'), client, say, respond)
         return event_handler.handle_interactive_event(command)
     if challenge is not None:
@@ -74,7 +73,7 @@ def handle_command(command, respond, say, client):
     if ssl_check is not None:
         return {'ssl_check': ssl_check}
     if text is not None:
-        event_handler = Event(command.get('team_id'), client, say, respond)
+        event_handler = EventHandler(command.get('team_id'), client, say, respond)
         return event_handler.parse_command(text, command)
 
 
@@ -130,7 +129,7 @@ def handle_delete_action(ack, body, respond, say, client):
 @app.view("create_event_dialog|")
 def handle_view_submission_events(ack, body, client, say, respond):
     ack()
-    event_handler = Event(body.get('team').get('id'), client, say, respond)
+    event_handler = EventHandler(body.get('team').get('id'), client, say, respond)
     event_handler.create_event_response(body)
     if body.get('view', {}).get('id'):
         user_id = body.get('user').get('id')
@@ -141,7 +140,7 @@ def handle_view_submission_events(ack, body, client, say, respond):
 def show_home_tab(ack, client, event, body):
     ack()
     if event.get('view', {}).get('id'):
-        event_handler = Event(event.get('view', {}).get('team_id'), client)
+        event_handler = EventHandler(event.get('view', {}).get('team_id'), client)
         user_id = event.get('user')
         event_handler.update_events_view(user_id)
 
