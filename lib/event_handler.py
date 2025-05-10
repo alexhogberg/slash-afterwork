@@ -116,7 +116,7 @@ class EventHandler:
                 view=event_view
             )
 
-    def list_event(self, event):
+    def list_event(self, event, command=None):
         """
         Gets a list of events
         :param event: Who is requesting the event
@@ -130,7 +130,7 @@ class EventHandler:
         else:
             self.respond(print_event_create())
 
-    def create_event(self, event):
+    def create_event(self, event, command=None):
         """
         Opens the create event dialog in slack
         :param event: The event from the slack command
