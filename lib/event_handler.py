@@ -122,6 +122,7 @@ class EventHandler:
         :param event: Who is requesting the event
         :return: A slack message containing the upcoming events
         """
+        print(event)
         results = self.event_dal.list_events()
         events: SlackMessage = print_event_list(results, event.get('user_id'))
         self.logger.info("Found events: {events}".format(events=events))
