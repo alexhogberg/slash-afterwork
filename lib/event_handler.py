@@ -393,6 +393,6 @@ class EventHandler:
         # Fetch and append the list of events
         results = self.event_dal.list_events()
         events = print_event_list(results, user_id)
-        base_view['blocks'] = base_view['blocks'] + events['blocks']
+        base_view['blocks'] = base_view['blocks'] + events.blocks
 
         return base_view
