@@ -268,7 +268,7 @@ class EventHandler:
             except Exception as e:
                 self.logger.error(e)
 
-    def create_event_from_input(self, date, place_id, time, author, channel_id, description):
+    def create_event_from_input(self, date, place_id, time, author, channel_id, description=None):
         """
         Creates an event from the input given in the slack dialog
         :param date: The date of the event
