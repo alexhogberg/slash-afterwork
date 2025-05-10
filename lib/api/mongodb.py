@@ -35,13 +35,6 @@ class EventMongoDAL:
         self.database = self.mongodb.events
         self.team_id = team_id
 
-        # Remove the unique constraint on the 'Date' field
-        # Drop the unique index if it exists
-        self.database.events.drop_index("Date_1")
-        # Recreate as a non-unique index
-        self.database.events.create_index([('date', 1)])
-        self.database.events.create_index([('team_id', 1)])
-
     def get_formatted_date(self, date) -> str:
         return self.team_id + '|' + date
 
