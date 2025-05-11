@@ -5,13 +5,14 @@ from lib.api.mongodb import OauthMongoDAL
 from slack_sdk.oauth.state_store import FileOAuthStateStore
 from slack_bolt.oauth.oauth_settings import OAuthSettings
 from lib.bolt.MongoDBBoltOAuthStateStore import MongoDBOAuthStateStore
-from lib.utils.helpers import build_create_dialog, validate_token
+from lib.utils.helpers import validate_token
 from lib.event_handler import EventHandler
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from slack_bolt import App
 from dotenv import load_dotenv
 
 from lib.api import google_places
+from lib.utils.slack_helpers import build_create_dialog
 
 load_dotenv()
 

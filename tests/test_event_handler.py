@@ -9,6 +9,7 @@ from lib.models.event_place import EventPlace
 from google.maps.places_v1.types import Place
 
 from lib.models.slack_message import SlackMessage
+from lib.utils.slack_helpers import print_possible_commands
 
 @pytest.fixture
 @patch("lib.api.mongodb.EventMongoDAL", autospec=True)
@@ -54,34 +55,30 @@ def get_mock_event():
 def test_parse_command_no_command(event_handler):
     event_handler.respond = MagicMock()
     event_handler.parse_command("", {})
-    event_handler.respond.assert_called_once_with("No command given, {possible_commands}".format(
-        possible_commands="Possible commands are:\n                \nlist \ncreate <day> <time> <place>\njoin <day>\nleave <day>\ndelete <day>"
-    ))
+    event_handler.respond.assert_called_once_with(f"No command given, {print_possible_commands()}")
 
 def test_parse_command_invalid_command(event_handler):
     event_handler.respond = MagicMock()
     event_handler.parse_command("invalid_command", {})
-    event_handler.respond.assert_called_once_with("Invalid command given, {possible_commands}".format(
-        possible_commands="Possible commands are:\n                \nlist \ncreate <day> <time> <place>\njoin <day>\nleave <day>\ndelete <day>"
-    ))
+    event_handler.respond.assert_called_once_with(f"Invalid command given, {print_possible_commands()}")
 
 def test_list_event_with_results(event_handler, get_mock_event):
     event_handler.event_dal.list_events = MagicMock(return_value=[get_mock_event])
     event_handler.respond = MagicMock()
-    event_handler.list_event({"user_id": "test_user"})
+    event_handler.list_event("list", {"user_id": "test_user"})
     event_handler.respond.assert_called_once()
 
 def test_list_event_no_results(event_handler):
     event_handler.event_dal.list_events = MagicMock(return_value=[])
     event_handler.respond = MagicMock()
-    event_handler.list_event({"user_id": "test_user"})
+    event_handler.list_event("list", {"user_id": "test_user"})
     called_args: SlackMessage = event_handler.respond.call_args[0][0]  # Extract the first argument passed to respond
     assert called_args.text == "There is no upcoming event planned"
 
 def test_create_event(event_handler):
     event_handler.bolt_client.views_open = MagicMock()
     event_handler.respond = MagicMock()
-    event_handler.create_event({"trigger_id": "test_trigger"})
+    event_handler.create_event("list", {"trigger_id": "test_trigger"})
     event_handler.bolt_client.views_open.assert_called_once()
     event_handler.respond.assert_called_once_with('Please follow the instructions in the dialog!')
 
@@ -127,7 +124,7 @@ def test_leave_event_failure(event_handler):
 
 def test_suggest_event_no_area(event_handler):
     event_handler.bolt_client.chat_postEphemeral = MagicMock()
-    event_handler.suggest_event(["suggest"])
+    event_handler.suggest_event(["suggest"], {})
     event_handler.bolt_client.chat_postEphemeral.assert_called_once_with("Please specify a location to search for")
 
 def test_suggest_event_with_area(event_handler):
@@ -152,7 +149,7 @@ def test_suggest_event_with_area(event_handler):
                 types=["bar", "night_club"])
     ])
     event_handler.respond = MagicMock()
-    event_handler.suggest_event(["suggest", "New York"])
+    event_handler.suggest_event(["suggest", "New York"], {})
     event_handler.respond.assert_called_once()
 
 def test_create_event_from_input(event_handler):

@@ -1,19 +1,25 @@
 # coding=utf-8
 import logging
-import os
 
 from datetime import datetime
 
-import pymongo
 from lib.api.google_places import GooglePlaces
 from lib.api.mongodb import EventMongoDAL
 from lib.models.slack_message import SlackMessage
-from lib.utils.helpers import extract_values, get_date, print_event_list, get_valid_commands, \
-    print_possible_commands, \
-    print_event_created, print_event_today, build_create_dialog, print_event_create
+from lib.utils.date_utils import get_date
+from lib.utils.helpers import extract_values, get_valid_commands
 from lib.models.event_place import EventPlace
 from lib.models.event import Event
 from lib.api.slack import Slack
+from lib.utils.slack_helpers import (
+    build_create_dialog,
+    print_event_create,
+    print_event_created,
+    print_event_list,
+    print_event_today,
+    print_possible_commands,
+    show_events_view
+)
 
 
 class EventHandler:
@@ -29,7 +35,8 @@ class EventHandler:
         if team_id is None:
             self.logger.error("No team id specified")
         self.team_id = team_id
-        self.event_dal = event_dal or EventMongoDAL(team_id) if event_dal is None else event_dal
+        self.event_dal = event_dal or EventMongoDAL(
+            team_id) if event_dal is None else event_dal
         self.google_places = GooglePlaces()
 
     def parse_command(self, command, event):
@@ -39,11 +46,9 @@ class EventHandler:
         :param event: the full lambda event
         :return: the action done or error if incorrect command was specified
         """
-        self.logger.info("Handling command: {command}".format(command=command))
+        self.logger.info(f"Handling command: {command}")
         if command == "":
-            return self.respond("No command given, {possible_commands}".format(
-                possible_commands=print_possible_commands()
-            ))
+            return self.respond(f"No command given, {print_possible_commands()}")
         elif command.split(" ")[0] in get_valid_commands():
             operation = command.split(" ")
 
@@ -51,9 +56,7 @@ class EventHandler:
             return action(command, event)
 
         else:
-            return self.respond("Invalid command given, {possible_commands}".format(
-                possible_commands=print_possible_commands()
-            ))
+            return self.respond(f"Invalid command given, {print_possible_commands()}")
 
     def handle_interactive_event(self, payload):
         """
@@ -293,7 +296,7 @@ class EventHandler:
             id = self.event_dal.insert_event(event)
             event._id = id
             self.logger.info('Created a new event')
-            
+
             message = print_event_created(event)
             self.say(
                 text=message.text,
@@ -345,54 +348,6 @@ class EventHandler:
         :param user_id: The ID of the user to show the events view to.
         """
         self.logger.info(f"Showing events view for user: {user_id}")
-
-        base_view = {
-            "type": "home",
-            "callback_id": "home_view",
-            "blocks": [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*Welcome to Event Bot!* :tada:\n\nEvent Bot helps you plan and manage events with your team. Use the button below to create a new event or browse the upcoming events."
-                    }
-                },
-                {
-                    "type": "actions",
-                    "block_id": "create_event_block",
-                    "elements": [
-                        {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "text": "Create Event",
-                                "emoji": True
-                            },
-                            "style": "primary",
-                            "value": "create_event",
-                            "action_id": "create_event_action"
-                        }
-                    ]
-                },
-                {
-                    "type": "divider"
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "*Upcoming Events*"
-                    }
-                },
-                {
-                    "type": "divider"
-                },
-            ]
-        }
-
-        # Fetch and append the list of events
         results = self.event_dal.list_events()
-        events = print_event_list(results, user_id)
-        base_view['blocks'] = base_view['blocks'] + events.blocks
 
-        return base_view
+        return show_events_view(user_id, results)
