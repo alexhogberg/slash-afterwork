@@ -5,7 +5,6 @@ from datetime import datetime
 
 from lib.api.google_places import GooglePlaces
 from lib.api.mongodb import EventMongoDAL
-from lib.models.slack_message import SlackMessage
 from lib.utils.date_utils import get_date
 from lib.utils.helpers import extract_values, get_valid_commands
 from lib.models.event_place import EventPlace
@@ -130,9 +129,9 @@ class EventHandler:
         events = print_event_list(results, event.get('user_id'))
         self.logger.info("Found events: {events}".format(events=events))
         if results and len(results) > 0:
-            self.respond(events.to_dict())
+            self.respond(events.to_dict_respond())
         else:
-            self.respond(print_event_create().to_dict())
+            self.respond(print_event_create().to_dict_respond())
 
     def create_event(self, command, event):
         """

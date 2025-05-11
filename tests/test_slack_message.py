@@ -15,9 +15,9 @@ def test_slack_message_initialization():
     assert message.icon_emoji == ":robot_face:"
     assert len(message.blocks) == 1
 
-def test_slack_message_to_dict():
+def test_slack_message_to_dict_say():
     message = SlackMessage(text="Hello, world!", channel="#general")
-    message_dict = message.to_dict()
+    message_dict = message.to_dict_say()
     assert message_dict["channel"] == "#general"
     assert message_dict["text"] == "Hello, world!"
     assert "blocks" not in message_dict

@@ -19,7 +19,7 @@ class SlackMessage:
         self.icon_emoji = icon_emoji
         self.blocks = blocks if blocks is not None else []
 
-    def to_dict(self) -> dict:
+    def to_dict_say(self) -> dict:
         """
         Convert the SlackMessage instance to a dictionary suitable for the Slack API.
 
@@ -34,6 +34,19 @@ class SlackMessage:
             message["username"] = self.username
         if self.icon_emoji:
             message["icon_emoji"] = self.icon_emoji
+        if self.blocks:
+            message["blocks"] = self.blocks
+        return message
+
+    def to_dict_respond(self) -> dict:
+        """
+        Convert the SlackMessage instance to a dictionary suitable for the Slack API.
+
+        :return: A dictionary representation of the Slack message.
+        """
+        message = {}
+        if self.text:
+            message["text"] = self.text
         if self.blocks:
             message["blocks"] = self.blocks
         return message
