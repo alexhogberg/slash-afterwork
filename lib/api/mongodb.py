@@ -33,12 +33,6 @@ class EventMongoDAL:
         self.mongodb = MongoClient(db_connection_string)
         self.database = self.mongodb.events
         self.team_id = team_id
-        
-        # Safety check: Warn if using production team_id during tests
-        if team_id == "test_team":
-            self.logger.warning("Using test_team for integration tests.")
-        elif "test" not in team_id:
-            raise ValueError("Integration tests must use a test-specific team_id.")
 
     def get_formatted_date(self, date) -> str:
         return self.team_id + "|" + date
