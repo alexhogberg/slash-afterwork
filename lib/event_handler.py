@@ -130,9 +130,9 @@ class EventHandler:
         events = print_event_list(results, event.get('user_id'))
         self.logger.info("Found events: {events}".format(events=events))
         if results and len(results) > 0:
-            self.respond(events)
+            self.respond(events.to_dict())
         else:
-            self.respond(print_event_create())
+            self.respond(print_event_create().to_dict())
 
     def create_event(self, command, event):
         """

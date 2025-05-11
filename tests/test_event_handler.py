@@ -73,7 +73,7 @@ def test_list_event_no_results(event_handler):
     event_handler.respond = MagicMock()
     event_handler.list_event("list", {"user_id": "test_user"})
     called_args: SlackMessage = event_handler.respond.call_args[0][0]  # Extract the first argument passed to respond
-    assert called_args.text == "There is no upcoming event planned"
+    assert called_args["text"] == "There is no upcoming event planned"
 
 def test_create_event(event_handler):
     event_handler.bolt_client.views_open = MagicMock()
