@@ -246,12 +246,12 @@ def print_event_today(event: Event) -> str:
 
 
 def get_valid_commands() -> list:
-    return ['list', 'create', 'join', 'leave', 'delete', 'suggest']
+    return ['list', 'create', 'suggest']
 
 
 def print_possible_commands() -> str:
     return """Possible commands are:
-                \nlist \ncreate <day> <time> <place>\njoin <day>\nleave <day>\ndelete <day>"""
+                \nlist \ncreate\n suggest <place>"""
 
 
 def print_event_created(event: Event) -> SlackMessage:

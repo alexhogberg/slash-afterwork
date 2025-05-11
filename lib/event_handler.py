@@ -48,7 +48,7 @@ class EventHandler:
             operation = command.split(" ")
 
             action = getattr(self, operation[0] + "_event")
-            return action(operation, event)
+            return action(command, event)
 
         else:
             return self.respond("Invalid command given, {possible_commands}".format(
@@ -116,13 +116,13 @@ class EventHandler:
                 view=event_view
             )
 
-    def list_event(self, event, command=None):
+    def list_event(self, command, event):
         """
         Gets a list of events
         :param event: Who is requesting the event
         :return: A slack message containing the upcoming events
         """
-        self.logger.info(event)
+        self.logger.info(command, event)
         results = self.event_dal.list_events()
         events = print_event_list(results, event.get('user_id'))
         self.logger.info("Found events: {events}".format(events=events))
@@ -131,13 +131,13 @@ class EventHandler:
         else:
             self.respond(print_event_create())
 
-    def create_event(self, event, command=None):
+    def create_event(self, command, event):
         """
         Opens the create event dialog in slack
         :param event: The event from the slack command
         :return: None
         """
-
+        self.logger.info(command, event)
         trigger_id = event.get('trigger_id')
         self.bolt_client.views_open(
             trigger_id=trigger_id, view=build_create_dialog())
@@ -223,7 +223,7 @@ class EventHandler:
 
         return "Couldn't find any event on that day."
 
-    def suggest_event(self, command):
+    def suggest_event(self, command, event):
         """
         Suggests a place to hold an event
         :param command: The command from the slack event
