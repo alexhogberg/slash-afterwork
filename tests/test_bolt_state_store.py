@@ -1,5 +1,8 @@
-import pytest, time
+import time
 from unittest.mock import MagicMock, patch
+
+import pytest
+
 from lib.bolt.MongoDBBoltOAuthStateStore import MongoDBOAuthStateStore
 
 
@@ -23,14 +26,20 @@ def test_issue_state(state_store):
 
 
 def test_consume_valid_state(state_store):
-    state_store.collection.find_one_and_delete = MagicMock(return_value={"state": "test_state", "created_at": time.time()})
+    state_store.collection.find_one_and_delete = MagicMock(
+        return_value={"state": "test_state", "created_at": time.time()}
+    )
     result = state_store.consume("test_state")
     assert result is True
-    state_store.collection.find_one_and_delete.assert_called_once_with({"state": "test_state"})
+    state_store.collection.find_one_and_delete.assert_called_once_with(
+        {"state": "test_state"}
+    )
 
 
 def test_consume_invalid_state(state_store):
     state_store.collection.find_one_and_delete = MagicMock(return_value=None)
     result = state_store.consume("invalid_state")
     assert result is False
-    state_store.collection.find_one_and_delete.assert_called_once_with({"state": "invalid_state"})
+    state_store.collection.find_one_and_delete.assert_called_once_with(
+        {"state": "invalid_state"}
+    )

@@ -3,32 +3,34 @@
 from datetime import datetime
 
 import pytest
+from google.maps.places_v1.types import Place
+
 from lib.models.event import Event
 from lib.models.event_place import EventPlace
-from google.maps.places_v1.types import Place
 from lib.models.slack_message import SlackMessage
 from lib.utils.date_utils import (
-    is_day_formatted_as_date,
-    get_next_weekday_as_date,
-    parse_date_to_weekday,
-    get_day_number,
     get_date,
-)
-from lib.utils.slack_helpers import (
-    print_event_list,
-    print_event_create,
-    print_event_today,
-    print_event_created,
-    build_create_dialog,
-    print_possible_commands
+    get_day_number,
+    get_next_weekday_as_date,
+    is_day_formatted_as_date,
+    parse_date_to_weekday,
 )
 from lib.utils.helpers import (
-    validate_token,
+    extract_values,
     get_user_name,
     get_user_name_from_event,
     get_valid_commands,
-    extract_values,
+    validate_token,
 )
+from lib.utils.slack_helpers import (
+    build_create_dialog,
+    print_event_create,
+    print_event_created,
+    print_event_list,
+    print_event_today,
+    print_possible_commands,
+)
+
 
 @pytest.fixture
 def get_mock_event():
@@ -43,7 +45,8 @@ def get_mock_event():
                 id="ChIJN1t_tDeuEmsRUsoyG83frY4",
                 formatted_address="123 Test St",
                 rating=4.5,
-                types=["restaurant", "bar"])
+                types=["restaurant", "bar"],
+            )
         ),
         participants=["U12345"],
         author="U67890",
@@ -75,8 +78,7 @@ def test_is_day_formatted_as_date():
 def test_get_next_weekday_as_date():
     weekday_number = 2  # Wednesday
     result = get_next_weekday_as_date(weekday_number)
-    assert datetime.strptime(
-        result, "%Y-%m-%d").weekday() == weekday_number
+    assert datetime.strptime(result, "%Y-%m-%d").weekday() == weekday_number
 
 
 def test_parse_date_to_weekday():
@@ -118,7 +120,8 @@ def test_print_event_today():
                 id="ChIJN1t_tDeuEmsRUsoyG83frY4",
                 formatted_address="123 Test St",
                 rating=4.5,
-                types=["restaurant", "bar"])
+                types=["restaurant", "bar"],
+            )
         ),
         participants=["U12345"],
         author="U67890",
@@ -127,6 +130,7 @@ def test_print_event_today():
     assert "Reminder" in result
     assert "Tuesday" in result
     assert "started by *@U67890*" in result
+
 
 def test_print_event_today_no_participants():
     event = Event(
@@ -140,18 +144,25 @@ def test_print_event_today_no_participants():
                 id="ChIJN1t_tDeuEmsRUsoyG83frY4",
                 formatted_address="123 Test St",
                 rating=4.5,
-                types=["restaurant", "bar"])
+                types=["restaurant", "bar"],
+            )
         ),
         participants=[],
         author="U67890",
     )
     result = print_event_today(event)
-    assert "Hey guys, there was an event planned for today, but no one wants to go :(" in result
+    assert (
+        # noqa
+        "Hey guys, there was an event planned for today, but no one wants to go :("
+        in result
+    )
+
 
 def test_print_event_today_no_event():
     event = None
     result = print_event_today(event)
     assert result is None
+
 
 def test_get_valid_commands():
     commands = get_valid_commands()
@@ -177,7 +188,8 @@ def test_print_event_created():
                 id="ChIJN1t_tDeuEmsRUsoyG83frY4",
                 formatted_address="123 Test St",
                 rating=4.5,
-                types=["restaurant", "bar"])
+                types=["restaurant", "bar"],
+            )
         ),
         participants=[],
         author="U67890",
@@ -199,7 +211,10 @@ def test_extract_values():
                 "action1": {"type": "plain_text_input", "value": "test_value"},
             },
             "block2": {
-                "action2": {"type": "datepicker", "selected_date": "2023-10-10"},
+                "action2": {
+                    "type": "datepicker",
+                    "selected_date": "2023-10-10",
+                },
             },
         }
     }

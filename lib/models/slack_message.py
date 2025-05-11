@@ -3,7 +3,14 @@ class SlackMessage:
     A class to represent a Slack message as it is sent to the Slack API.
     """
 
-    def __init__(self, text: str, channel: str = None, username: str = None, icon_emoji: str = None, blocks: list = None):
+    def __init__(
+        self,
+        text: str,
+        channel: str = None,
+        username: str = None,
+        icon_emoji: str = None,
+        blocks: list = None,
+    ):
         """
         Initialize a SlackMessage instance.
 

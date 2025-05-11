@@ -1,7 +1,8 @@
-from slack_sdk.oauth.state_store import OAuthStateStore
-from pymongo import ASCENDING
-from uuid import uuid4
 import time
+from uuid import uuid4
+
+from pymongo import ASCENDING
+from slack_sdk.oauth.state_store import OAuthStateStore
 
 from lib.api.mongodb import OauthMongoDAL
 
@@ -15,16 +16,13 @@ class MongoDBOAuthStateStore(OAuthStateStore):
         # Ensure TTL index exists
         self.collection.create_index(
             [("created_at", ASCENDING)],
-            expireAfterSeconds=self.expiration_seconds
+            expireAfterSeconds=self.expiration_seconds,
         )
 
     def issue(self, *args, **kwargs) -> str:
         state = str(uuid4())
         try:
-            self.collection.insert_one({
-                "state": state,
-                "created_at": time.time()
-            })
+            self.collection.insert_one({"state": state, "created_at": time.time()})
             return state
         except Exception as e:
             raise e

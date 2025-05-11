@@ -1,8 +1,9 @@
-import pytest
 from unittest.mock import MagicMock, patch
-from lib.bolt.MongoDBBoltOAuth import MongoInstallationStore
+
+import pytest
 from slack_bolt.oauth.internals import Installation
-from slack_sdk.oauth.installation_store.models.bot import Bot
+
+from lib.bolt.MongoDBBoltOAuth import MongoInstallationStore
 
 
 @pytest.fixture
@@ -45,7 +46,9 @@ def test_find_installation(installation_store):
             "bot_id": "B123",
         }
     )
-    result = installation_store.find_installation(team_id="T123", user_id="U123", enterprise_id=None)
+    result = installation_store.find_installation(
+        team_id="T123", user_id="U123", enterprise_id=None
+    )
     assert result is not None
     assert result.team_id == "T123"
     assert result.user_id == "U123"
@@ -72,12 +75,16 @@ def test_find_bot(installation_store):
     assert result.bot_token == "xoxb-123"
     assert result.bot_user_id == "U123"
     assert result.installed_at == 1746360000
-    installation_store.db.slack_bots.find_one.assert_called_once_with({"team_id": "T123"})
+    installation_store.db.slack_bots.find_one.assert_called_once_with(
+        {"team_id": "T123"}
+    )
 
 
 def test_delete_installation(installation_store):
     installation_store.db.slack_installations.delete_one = MagicMock()
-    installation_store.delete_installation(team_id="T123", user_id="U123", enterprise_id=None)
+    installation_store.delete_installation(
+        team_id="T123", user_id="U123", enterprise_id=None
+    )
     installation_store.db.slack_installations.delete_one.assert_called_once_with(
         {"enterprise_id": None, "team_id": "T123", "user_id": "U123"}
     )
@@ -86,4 +93,6 @@ def test_delete_installation(installation_store):
 def test_delete_bot(installation_store):
     installation_store.db.slack_bots.delete_one = MagicMock()
     installation_store.delete_bot(team_id="T123", enterprise_id=None)
-    installation_store.db.slack_bots.delete_one.assert_called_once_with({"enterprise_id": None, "team_id": "T123"})
+    installation_store.db.slack_bots.delete_one.assert_called_once_with(
+        {"enterprise_id": None, "team_id": "T123"}
+    )

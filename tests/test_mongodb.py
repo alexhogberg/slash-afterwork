@@ -1,6 +1,8 @@
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 from bson.objectid import ObjectId
+
 from lib.api.mongodb import EventMongoDAL
 from lib.models.event import Event
 
@@ -21,7 +23,7 @@ def get_mock_event():
         "location": "Test Place",
         "description": "Test Description",
         "participants": ["user1", "user2"],
-        "author": "test_user"
+        "author": "test_user",
     }
 
 
@@ -39,7 +41,8 @@ def event_dal(mock_mongo_client):
 def test_insert_event(event_dal, get_mock_event):
     mock_inserted_id = ObjectId()
     event_dal.database.events.insert_one = MagicMock(
-        return_value=MagicMock(inserted_id=mock_inserted_id))
+        return_value=MagicMock(inserted_id=mock_inserted_id)
+    )
 
     # Create a mock event object
     event = Event(**get_mock_event)
@@ -60,7 +63,7 @@ def test_list_events(event_dal):
             "location": "Test Place",
             "description": "Test Description",
             "participants": ["user1", "user2"],
-            "author": "test_user"
+            "author": "test_user",
         },
         {
             "_id": "234",
@@ -70,7 +73,7 @@ def test_list_events(event_dal):
             "location": "Another Place",
             "description": "Another Description",
             "participants": ["user3"],
-            "author": "test_user"
+            "author": "test_user",
         },
         {
             "_id": "456",
@@ -80,8 +83,8 @@ def test_list_events(event_dal):
             "location": "Third Place",
             "description": "Third Description",
             "participants": ["user4"],
-            "author": "test_user"
-        }
+            "author": "test_user",
+        },
     ]
     # Mock the find method to return a mock cursor
     mock_cursor = MagicMock()
@@ -91,10 +94,9 @@ def test_list_events(event_dal):
     result = event_dal.list_events()
 
     # Assert that find was called with the correct filter
-    event_dal.database.events.find.assert_called_once_with(
-        {'team_id': "test_team"})
+    event_dal.database.events.find.assert_called_once_with({"team_id": "test_team"})
     # Assert that sort was called with the correct sorting criteria
-    mock_cursor.sort.assert_called_once_with([('date', 1), ('time', 1)])
+    mock_cursor.sort.assert_called_once_with([("date", 1), ("time", 1)])
     # Assert the result matches the mocked events
 
     # Assert that the result is a list of Event objects
@@ -109,14 +111,15 @@ def test_get_event(event_dal, get_mock_event):
     result = event_dal.get_event(str(mock_event._id))
 
     event_dal.database.events.find_one.assert_called_once_with(
-        {"_id": ObjectId('0123456789ab0123456789ab')})
+        {"_id": ObjectId("0123456789ab0123456789ab")}
+    )
     assert result.team_id == mock_event.team_id
 
 
 def test_join_event(event_dal, get_mock_event):
     mock_event = Event(**get_mock_event)
     mock_event_id = mock_event._id
-    
+
     updated_event = {
         "_id": mock_event_id,
         "team_id": "test_team",
@@ -125,25 +128,27 @@ def test_join_event(event_dal, get_mock_event):
         "location": "Test Place",
         "description": "Test Description",
         "participants": ["user1", "user2", "test_user"],
-        "author": "test_user"
+        "author": "test_user",
     }
     # Mock the find_one_and_update method to return a mock event
     event_dal.database.events.find_one_and_update = MagicMock(
-        return_value=updated_event)
+        return_value=updated_event
+    )
 
     result = event_dal.join_event(str(mock_event_id), "test_user")
 
     event_dal.database.events.find_one_and_update.assert_called_once_with(
-        {'_id': ObjectId('0123456789ab0123456789ab')}, {
-            '$addToSet': {'participants': 'test_user'}},
-        return_document=True)
+        {"_id": ObjectId("0123456789ab0123456789ab")},
+        {"$addToSet": {"participants": "test_user"}},
+        return_document=True,
+    )
     assert result.participants == updated_event["participants"]
 
 
 def test_leave_event(event_dal, get_mock_event):
     mock_event = Event(**get_mock_event)
     mock_event_id = mock_event._id
-    
+
     updated_event = {
         "_id": mock_event_id,
         "team_id": "test_team",
@@ -152,26 +157,29 @@ def test_leave_event(event_dal, get_mock_event):
         "location": "Test Place",
         "description": "Test Description",
         "participants": ["user1"],
-        "author": "test_user"
+        "author": "test_user",
     }
     # Mock the find_one_and_update method to return a mock event
     event_dal.database.events.find_one_and_update = MagicMock(
-        return_value=updated_event)
+        return_value=updated_event
+    )
 
     result = event_dal.leave_event(str(mock_event_id), "user2")
 
     event_dal.database.events.find_one_and_update.assert_called_once_with(
-        {'_id': ObjectId('0123456789ab0123456789ab')}, {
-            '$pull': {'participants': 'user2'}},
-        return_document=True)
+        {"_id": ObjectId("0123456789ab0123456789ab")},
+        {"$pull": {"participants": "user2"}},
+        return_document=True,
+    )
     assert result.participants == updated_event["participants"]
 
 
 def test_delete_event(event_dal):
     mock_event_id = ObjectId()
     event_dal.database.events.delete_one = MagicMock(
-        return_value=MagicMock(deleted_count=1))
-    
+        return_value=MagicMock(deleted_count=1)
+    )
+
     event_dal.database.events.find_one = MagicMock(
         return_value={
             "_id": mock_event_id,
@@ -181,7 +189,7 @@ def test_delete_event(event_dal):
             "location": "Test Place",
             "description": "Test Description",
             "participants": ["user1"],
-            "author": "test_user"
+            "author": "test_user",
         }
     )
 

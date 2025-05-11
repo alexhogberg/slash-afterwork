@@ -6,7 +6,17 @@ class Event:
     A class to represent an Event in the application.
     """
 
-    def __init__(self, _id, team_id, date, time, location, description=None, participants=None, author=None):
+    def __init__(
+        self,
+        _id,
+        team_id,
+        date,
+        time,
+        location,
+        description=None,
+        participants=None,
+        author=None,
+    ):
         """
         Initialize an Event object.
 
@@ -26,20 +36,20 @@ class Event:
         self.author = author
         self.description = description
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Return a string representation of the Event.
         """
         return f"Event(id={self._id}, date={self.date}, time={self.time}, location={self.location}, description={self.description}, participants={self.participants}, author={self.author})"
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         """
         Convert the Event object to a dictionary.
         """
         return {
-            "_id": self._id,
             "date": self.date,
             "time": self.time,
+            "team_id": self.team_id,
             "location": self.location,
             "description": self.description,
             "participants": self.participants,
@@ -47,7 +57,7 @@ class Event:
         }
 
     @classmethod
-    def from_dict(cls, data):
+    def from_dict(cls, data) -> "Event":
         """
         Create an Event object from a dictionary.
 
@@ -55,9 +65,10 @@ class Event:
         :return: An Event object.
         """
         return cls(
-            id=data.get("id"),
+            _id=data.get("id"),
             date=data.get("date"),
             time=data.get("time"),
+            team_id=data.get("team_id"),
             location=data.get("location"),
             description=data.get("description"),
             participants=data.get("participants"),

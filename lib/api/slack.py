@@ -1,9 +1,9 @@
 import logging
 import os
 
+from dotenv import load_dotenv
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
-from dotenv import load_dotenv
 
 from lib.api.mongodb import OauthMongoDAL
 
@@ -17,17 +17,15 @@ class Slack:
 
         self.oauth = OauthMongoDAL()
         if team_id is None:
-            self.api_key = os.getenv('SLACK_BOT_TOKEN')
+            self.api_key = os.getenv("SLACK_BOT_TOKEN")
         else:
-            self.api_key = os.getenv('SLACK_BOT_TOKEN')
+            self.api_key = os.getenv("SLACK_BOT_TOKEN")
 
         self.client = WebClient(token=self.api_key)
 
     @staticmethod
     def private_slack_text(text):
-        return {
-            'text': text
-        }
+        return {"text": text}
 
     def get_channel_id(self):
         """
@@ -35,18 +33,18 @@ class Slack:
         """
         try:
             response = self.client.conversations_list()
-            channels = response.get('channels', [])
+            channels = response.get("channels", [])
 
             for channel in channels:
-                if channel['name'] == os.getenv('SLACK_CHANNEL_NAME'):
-                    return channel['id']
+                if channel["name"] == os.getenv("SLACK_CHANNEL_NAME"):
+                    return channel["id"]
 
-            self.logger.warning("Channel not found: %s",
-                                os.getenv('SLACK_CHANNEL_NAME'))
+            self.logger.warning(
+                "Channel not found: %s", os.getenv("SLACK_CHANNEL_NAME")
+            )
             return None
         except SlackApiError as e:
-            self.logger.error(
-                f"Error fetching channel list: {e.response['error']}")
+            self.logger.error(f"Error fetching channel list: {e.response['error']}")
             raise
 
     def send_public_message(self, text, username, attachments=None):
@@ -63,7 +61,7 @@ class Slack:
                 channel=channel_id,
                 text=text,
                 username=username,
-                attachments=attachments
+                attachments=attachments,
             )
         except SlackApiError as e:
             self.logger.error(f"Error sending message: {e.response['error']}")
@@ -74,11 +72,7 @@ class Slack:
         Update an existing chat message in a Slack channel.
         """
         try:
-            self.client.chat_update(
-                channel=channel,
-                ts=ts,
-                text=text
-            )
+            self.client.chat_update(channel=channel, ts=ts, text=text)
         except SlackApiError as e:
             self.logger.error(f"Error updating message: {e.response['error']}")
             raise
@@ -88,10 +82,7 @@ class Slack:
         Open a Slack dialog using the provided trigger ID and dialog payload.
         """
         try:
-            response = self.client.dialog_open(
-                trigger_id=trigger_id,
-                dialog=dialog
-            )
+            response = self.client.dialog_open(trigger_id=trigger_id, dialog=dialog)
             return response
         except SlackApiError as e:
             self.logger.error(f"Error opening dialog: {e.response['error']}")

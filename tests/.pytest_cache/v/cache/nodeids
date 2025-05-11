@@ -1,6 +1,6 @@
 [
-  "test_afterwork.py::test_get_user_name", 
-  "test_afterwork.py::test_is_day_formatted_as_date", 
-  "test_slack.py::SlackTestCase::test_get_channel_id", 
+  "test_afterwork.py::test_get_user_name",
+  "test_afterwork.py::test_is_day_formatted_as_date",
+  "test_slack.py::SlackTestCase::test_get_channel_id",
   "test_slack.py::SlackTestCase::test_private_slack_text"
 ]
